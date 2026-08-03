@@ -16,27 +16,27 @@ async function canEditTask(userId: string, role: string, taskId: string) {
   return task;
 }
 
-export async function createSubtask(formData: FormData) {
+export async function createSubtask(formData: FormData): Promise<void> {
   const user = await requireUser();
   const taskId = String(formData.get("taskId") || "");
   const title = String(formData.get("title") || "").trim();
-  if (!title) return null;
+  if (!title) return;
 
   const task = await canEditTask(user.id, user.role, taskId);
-  if (!task) return { error: "No tienes permisos en esta tarea" };
+  if (!task) return;
 
   await prisma.subtask.create({ data: { taskId, title } });
   revalidatePath(`/tasks/${taskId}`);
 }
 
-export async function toggleSubtask(formData: FormData) {
+export async function toggleSubtask(formData: FormData): Promise<void> {
   const user = await requireUser();
   const subtaskId = String(formData.get("subtaskId") || "");
   const subtask = await prisma.subtask.findUnique({ where: { id: subtaskId } });
-  if (!subtask) return { error: "Subtarea no encontrada" };
+  if (!subtask) return;
 
   const task = await canEditTask(user.id, user.role, subtask.taskId);
-  if (!task) return { error: "No tienes permisos en esta tarea" };
+  if (!task) return;
 
   await prisma.subtask.update({
     where: { id: subtaskId },
@@ -45,14 +45,14 @@ export async function toggleSubtask(formData: FormData) {
   revalidatePath(`/tasks/${subtask.taskId}`);
 }
 
-export async function deleteSubtask(formData: FormData) {
+export async function deleteSubtask(formData: FormData): Promise<void> {
   const user = await requireUser();
   const subtaskId = String(formData.get("subtaskId") || "");
   const subtask = await prisma.subtask.findUnique({ where: { id: subtaskId } });
-  if (!subtask) return { error: "Subtarea no encontrada" };
+  if (!subtask) return;
 
   const task = await canEditTask(user.id, user.role, subtask.taskId);
-  if (!task) return { error: "No tienes permisos en esta tarea" };
+  if (!task) return;
 
   await prisma.subtask.delete({ where: { id: subtaskId } });
   revalidatePath(`/tasks/${subtask.taskId}`);

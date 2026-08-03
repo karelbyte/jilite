@@ -16,8 +16,8 @@ export default function ProjectsTemplate({ projects, canCreate, page, totalPages
     <main className="w-full flex-1 px-4 py-8 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Proyectos</h1>
-          <p className="text-sm text-gray-500">Tus proyectos y las tareas de tu equipo.</p>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Proyectos</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Tus proyectos y las tareas de tu equipo.</p>
         </div>
         {canCreate ? <NewProjectModal /> : null}
       </div>

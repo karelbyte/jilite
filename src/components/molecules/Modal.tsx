@@ -34,18 +34,18 @@ export default function Modal({ open, onClose, title, children }: Props) {
         aria-hidden="true"
       />
       <div
-        className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
+        className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900"
         role="dialog"
         aria-modal="true"
       >
         {title ? (
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
             <button
               type="button"
               onClick={onClose}
               aria-label="Cerrar"
-              className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             >
               <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
                 <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />

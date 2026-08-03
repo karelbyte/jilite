@@ -19,7 +19,7 @@ export default function StatusSelect({ taskId, status }: Props) {
     <form action={formAction} className="flex items-end gap-3">
       <input type="hidden" name="id" value={taskId} />
       <div className="flex-1 space-y-1">
-        <label htmlFor="status" className="text-sm font-medium text-gray-700">
+        <label htmlFor="status" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Estado
         </label>
         <Select id="status" name="status" defaultValue={status}>

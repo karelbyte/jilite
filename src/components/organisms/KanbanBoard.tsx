@@ -49,10 +49,11 @@ export default function KanbanBoard({ tasks }: { tasks: TaskListItem[] }) {
             key={s}
             onDragOver={(e) => e.preventDefault()}
             onDrop={() => onDrop(s)}
-            className="flex min-h-[200px] flex-col rounded-xl border border-gray-200 bg-gray-50 p-3"
+            aria-label={`Columna ${meta.label}`}
+            className="flex min-h-[200px] flex-col rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900"
           >
             <div className="mb-3 flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <span className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: meta.bar }} />
                 {meta.label}
               </span>
@@ -66,7 +67,8 @@ export default function KanbanBoard({ tasks }: { tasks: TaskListItem[] }) {
                     key={t.id}
                     draggable
                     onDragStart={() => setDragId(t.id)}
-                    className="cursor-grab rounded-lg border border-gray-200 bg-white p-3 shadow-sm active:cursor-grabbing"
+                    aria-label={`Mover ${t.title}`}
+                    className="cursor-grab rounded-lg border border-gray-200 bg-white p-3 shadow-sm active:cursor-grabbing dark:border-gray-700 dark:bg-gray-900"
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <Badge className={p.className}>{p.label}</Badge>
@@ -74,12 +76,12 @@ export default function KanbanBoard({ tasks }: { tasks: TaskListItem[] }) {
                     </div>
                     <Link
                       href={`/tasks/${t.id}`}
-                      className="font-medium text-gray-900 line-clamp-2 hover:text-brand-700"
+                      className="font-medium text-gray-900 line-clamp-2 hover:text-brand-700 dark:text-gray-100 dark:hover:text-brand-400"
                     >
                       {t.title}
                     </Link>
                     {t.assignee ? (
-                      <span className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                      <span className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                         <Avatar name={t.assignee.name} src={t.assignee.image} size="sm" />
                         {t.assignee.name.split(" ")[0]}
                       </span>

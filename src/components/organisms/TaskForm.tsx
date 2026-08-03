@@ -30,26 +30,26 @@ export default function TaskForm({ projectId, users, onSuccess }: Props) {
   }, [pending, state.error, onSuccess]);
 
   return (
-    <form action={formAction} className="space-y-4 rounded-xl border border-gray-200 bg-white p-5">
+    <form action={formAction} className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
       <input type="hidden" name="projectId" value={projectId} />
       <div>
-        <h2 className="font-medium text-gray-900">Nueva tarea</h2>
+        <h2 className="font-medium text-gray-900 dark:text-gray-100">Nueva tarea</h2>
       </div>
       <div className="space-y-1">
-        <label htmlFor="title" className="text-sm font-medium text-gray-700">
+        <label htmlFor="title" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Título
         </label>
         <Input id="title" name="title" required maxLength={200} placeholder="Título de la tarea" />
       </div>
       <div className="space-y-1">
-        <label htmlFor="description" className="text-sm font-medium text-gray-700">
+        <label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Descripción
         </label>
         <Textarea id="description" name="description" rows={3} maxLength={5000} placeholder="Detalles de la tarea" />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-1">
-          <label htmlFor="status" className="text-sm font-medium text-gray-700">
+          <label htmlFor="status" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Estado
           </label>
           <Select id="status" name="status" defaultValue="TODO">
@@ -61,7 +61,7 @@ export default function TaskForm({ projectId, users, onSuccess }: Props) {
           </Select>
         </div>
         <div className="space-y-1">
-          <label htmlFor="priority" className="text-sm font-medium text-gray-700">
+          <label htmlFor="priority" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Prioridad
           </label>
           <Select id="priority" name="priority" defaultValue="MEDIUM">
@@ -74,7 +74,7 @@ export default function TaskForm({ projectId, users, onSuccess }: Props) {
         </div>
       </div>
       <div className="space-y-1">
-        <label htmlFor="assigneeId" className="text-sm font-medium text-gray-700">
+        <label htmlFor="assigneeId" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Asignado a
         </label>
         <Select id="assigneeId" name="assigneeId" defaultValue="">
@@ -87,7 +87,7 @@ export default function TaskForm({ projectId, users, onSuccess }: Props) {
         </Select>
       </div>
       <div className="space-y-1">
-        <label htmlFor="dueDate" className="text-sm font-medium text-gray-700">
+        <label htmlFor="dueDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Fecha límite
         </label>
         <Input id="dueDate" name="dueDate" type="date" />

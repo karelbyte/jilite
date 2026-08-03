@@ -36,19 +36,19 @@ export default function ProjectForm({ onSuccess }: Props) {
   }
 
   return (
-    <form action={formAction} className="space-y-4 rounded-xl border border-gray-200 bg-white p-5">
+    <form action={formAction} className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
       <div>
-        <h2 className="font-medium text-gray-900">Nuevo proyecto</h2>
-        <p className="text-sm text-gray-500">Crea un proyecto y agrega miembros.</p>
+        <h2 className="font-medium text-gray-900 dark:text-gray-100">Nuevo proyecto</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Crea un proyecto y agrega miembros.</p>
       </div>
       <div className="space-y-1">
-        <label htmlFor="name" className="text-sm font-medium text-gray-700">
+        <label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Nombre
         </label>
         <Input id="name" name="name" required maxLength={120} placeholder="Nombre del proyecto" />
       </div>
       <div className="space-y-1">
-        <label htmlFor="description" className="text-sm font-medium text-gray-700">
+        <label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Descripción
         </label>
         <Textarea

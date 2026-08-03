@@ -19,9 +19,13 @@ export default function Avatar({ name, src, size = "md" }: Props) {
 
   if (src) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={name}
+        loading="lazy"
+        width={36}
+        height={36}
         className={`${sizes[size]} rounded-full object-cover`}
       />
     );

@@ -15,7 +15,7 @@ export default function ResetPasswordForm({ token }: { token: string }) {
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="token" value={token} />
       <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-medium text-gray-700">
+        <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Nueva contraseña
         </label>
         <Input
@@ -24,8 +24,8 @@ export default function ResetPasswordForm({ token }: { token: string }) {
           type="password"
           autoComplete="new-password"
           required
-          minLength={6}
-          placeholder="Mínimo 6 caracteres"
+          minLength={8}
+          placeholder="Mín. 8, con mayúscula, número y símbolo"
         />
       </div>
       {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}

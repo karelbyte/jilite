@@ -4,14 +4,18 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { sendPasswordResetEmail, sendRegistrationEmail } from "@/lib/email";
+import {
+  sendPasswordChangedEmail,
+  sendPasswordResetEmail,
+  sendRegistrationEmail,
+} from "@/lib/email";
 import {
   generateResetToken,
   generateVerificationToken,
   resetTokenExpires,
   verificationTokenExpires,
 } from "@/lib/verification";
-import { loginSchema, registerSchema } from "@/lib/validations";
+import { loginSchema, passwordSchema, registerSchema } from "@/lib/validations";
 import { checkRateLimit, secondsUntil } from "@/lib/rateLimit";
 
 export interface ActionState {
@@ -97,7 +101,7 @@ export async function loginAction(
   if (existing.status !== "ACTIVE") {
     return {
       error:
-        "Tu cuenta no está activa. Verifica tu correo (revisa el enlace que te enviamos) o espera a que un administrador la active.",
+        "Tu cuenta no está activa. Revisa el enlace de verificación que te enviamos por correo, o espera a que un administrador la active. Puedes reenviar el correo con el formulario de abajo.",
       message: null,
     };
   }
@@ -203,8 +207,9 @@ export async function resetPasswordAction(
   if (typeof token !== "string" || typeof password !== "string") {
     return { error: "Datos inválidos", message: null };
   }
-  if (password.length < 6 || password.length > 128) {
-    return { error: "La contraseña debe tener entre 6 y 128 caracteres", message: null };
+  const pwdCheck = passwordSchema.safeParse(password);
+  if (!pwdCheck.success) {
+    return { error: pwdCheck.error.issues[0].message, message: null };
   }
 
   const user = await prisma.user.findUnique({ where: { resetToken: token } });
@@ -218,5 +223,57 @@ export async function resetPasswordAction(
     data: { password: hashed, resetToken: null, resetTokenExpires: null },
   });
 
+  try {
+    await sendPasswordChangedEmail(user.email, { name: user.name });
+  } catch (error) {
+    console.error("No se pudo enviar la notificación de cambio de contraseña:", error);
+  }
+
   return { error: null, message: "Contraseña actualizada. Ya puedes iniciar sesión." };
+}
+
+export async function resendVerificationAction(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const email = formData.get("email");
+  if (typeof email !== "string" || !email.trim()) {
+    return { error: "Ingresa tu correo", message: null };
+  }
+  const normalized = email.trim().toLowerCase();
+
+  const rl = checkRateLimit(`resend-verify:${normalized}`, { limit: 3, windowMs: 5 * 60_000 });
+  if (!rl.allowed) {
+    return { error: "Demasiadas solicitudes. Espera unos minutos.", message: null };
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: normalized } });
+  if (!user || user.status === "ACTIVE") {
+    return {
+      error: null,
+      message:
+        "Si el correo está registrado y no está activo, recibirás un nuevo enlace de verificación.",
+    };
+  }
+
+  const verificationToken = generateVerificationToken();
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { verificationToken, verificationTokenExpires: verificationTokenExpires() },
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const verifyUrl = `${appUrl}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+
+  try {
+    await sendRegistrationEmail(user.email, { name: user.name, verifyUrl });
+  } catch (error) {
+    console.error("No se pudo reenviar el correo de verificación:", error);
+    return { error: "No se pudo enviar el correo. Inténtalo de nuevo más tarde.", message: null };
+  }
+
+  return {
+    error: null,
+    message: "Correo de verificación reenviado. Revisa tu bandeja de entrada (y el spam).",
+  };
 }

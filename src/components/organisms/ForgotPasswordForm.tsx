@@ -14,7 +14,7 @@ export default function ForgotPasswordForm() {
   return (
     <form action={formAction} className="space-y-4">
       <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium text-gray-700">
+        <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Correo
         </label>
         <Input id="email" name="email" type="email" autoComplete="email" required placeholder="tu@correo.com" />

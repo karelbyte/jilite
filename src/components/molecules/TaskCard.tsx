@@ -26,31 +26,33 @@ export default function TaskCard({ task }: { task: TaskListItem }) {
     <div className="relative">
       <Link
         href={`/tasks/${task.id}`}
-        className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+        className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-900"
       >
         <div className="mb-2 flex items-center gap-2 pr-8">
           <Badge className={priority.className}>{priority.label}</Badge>
           <Badge className={status.className}>{status.label}</Badge>
         </div>
-        <h3 className="font-medium text-gray-900 line-clamp-2">{task.title}</h3>
+        <h3 className="font-medium text-gray-900 line-clamp-2 dark:text-gray-100">{task.title}</h3>
         {task.description ? (
-          <p className="mt-1 text-sm text-gray-500 line-clamp-2">{task.description}</p>
+          <p className="mt-1 text-sm text-gray-500 line-clamp-2 dark:text-gray-400">{task.description}</p>
         ) : null}
         <div className="mt-3 flex items-center justify-between">
-          <span className="text-xs text-gray-400">{task.commentsCount} comentarios</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">{task.commentsCount} comentarios</span>
           {task.assignee ? (
-            <span className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
               <Avatar name={task.assignee.name} src={task.assignee.image} size="sm" />
               {task.assignee.name.split(" ")[0]}
             </span>
           ) : (
-            <span className="text-xs text-gray-400">Sin asignar</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">Sin asignar</span>
           )}
         </div>
         {task.dueDate ? (
           <p
             className={`mt-2 text-xs ${
-              task.status !== "DONE" && new Date(task.dueDate) < new Date() ? "text-red-600" : "text-gray-400"
+              task.status !== "DONE" && new Date(task.dueDate) < new Date()
+                ? "text-red-600 dark:text-red-400"
+                : "text-gray-400 dark:text-gray-500"
             }`}
           >
             Vence: {new Date(task.dueDate).toLocaleDateString("es")}

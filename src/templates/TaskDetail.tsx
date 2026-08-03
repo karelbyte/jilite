@@ -9,6 +9,7 @@ import FileUploader from "@/components/organisms/FileUploader";
 import TaskEditor from "@/components/organisms/TaskEditor";
 import TaskLabels from "@/components/organisms/TaskLabels";
 import SubtaskList from "@/components/organisms/SubtaskList";
+import AutoRefresh from "@/components/molecules/AutoRefresh";
 import StatusSelect from "@/components/molecules/StatusSelect";
 import { PRIORITY_META, STATUS_META } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
@@ -64,12 +65,12 @@ export default function TaskDetailTemplate({
         ← Volver al proyecto
       </Link>
 
-      <div className="mt-4 rounded-xl border border-gray-200 bg-white p-6">
+      <div className="mt-4 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <Badge className={priority.className}>{priority.label}</Badge>
           <Badge className={status.className}>{status.label}</Badge>
           {task.dueDate ? (
-            <Badge className={new Date(task.dueDate) < new Date() && task.status !== "DONE" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}>
+            <Badge className={new Date(task.dueDate) < new Date() && task.status !== "DONE" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}>
               Vence: {formatDate(task.dueDate)}
             </Badge>
           ) : null}
@@ -95,14 +96,14 @@ export default function TaskDetailTemplate({
                 <StatusSelect taskId={task.id} status={task.status} />
               </div>
             ) : null}
-            <h1 className="text-2xl font-semibold text-gray-900">{task.title}</h1>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{task.title}</h1>
             {task.description ? (
-              <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{task.description}</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">{task.description}</p>
             ) : null}
           </div>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4 text-xs text-gray-400">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4 text-xs text-gray-400 dark:border-gray-800 dark:text-gray-500">
           <span className="flex items-center gap-2">
             Creada por
             <Avatar name={task.createdBy.name} src={task.createdBy.image} size="sm" />
@@ -120,12 +121,12 @@ export default function TaskDetailTemplate({
       </div>
 
       <section className="mt-6">
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Subtareas</h2>
+        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Subtareas</h2>
         <SubtaskList taskId={task.id} subtasks={subtasks} />
       </section>
 
       <section className="mt-6">
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Etiquetas</h2>
+        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Etiquetas</h2>
         <TaskLabels
           taskId={task.id}
           projectId={task.projectId}
@@ -136,7 +137,7 @@ export default function TaskDetailTemplate({
       </section>
 
       <section className="mt-6">
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Archivos</h2>
+        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Archivos</h2>
         <FileUploader taskId={task.id} />
         <div className="mt-4">
           <FileList files={files} />
@@ -144,11 +145,13 @@ export default function TaskDetailTemplate({
       </section>
 
       <section className="mt-6">
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">Comentarios</h2>
+        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Comentarios</h2>
         <div className="mb-5">
-          <CommentForm taskId={task.id} />
-        </div>
-        <CommentList comments={comments} />
+<CommentForm taskId={task.id} />
+      </div>
+        <AutoRefresh>
+          <CommentList comments={comments} />
+        </AutoRefresh>
       </section>
     </main>
   );

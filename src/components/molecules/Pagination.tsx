@@ -31,7 +31,7 @@ export default function Pagination({ page, totalPages }: Props) {
   return (
     <nav className="flex items-center justify-center gap-1 pt-6" aria-label="Paginación">
       {page > 1 ? (
-        <Link href={href(page - 1)} className={`${item} border-gray-300 text-gray-600 hover:bg-gray-50`}>
+        <Link href={href(page - 1)} className={`${item} border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800`}>
           ‹
         </Link>
       ) : null}
@@ -42,14 +42,14 @@ export default function Pagination({ page, totalPages }: Props) {
             {p}
           </span>
         ) : (
-          <Link key={p} href={href(p)} className={`${item} border-gray-300 text-gray-600 hover:bg-gray-50`}>
+          <Link key={p} href={href(p)} className={`${item} border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800`}>
             {p}
           </Link>
         )
       )}
       {end < totalPages ? <span className={`${item} border-transparent text-gray-400`}>…</span> : null}
       {page < totalPages ? (
-        <Link href={href(page + 1)} className={`${item} border-gray-300 text-gray-600 hover:bg-gray-50`}>
+        <Link href={href(page + 1)} className={`${item} border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800`}>
           ›
         </Link>
       ) : null}

@@ -16,34 +16,24 @@ interface Props {
 export default function SubtaskList({ taskId, subtasks }: Props) {
   const doneCount = subtasks.filter((s) => s.done).length;
 
-  async function createAction(fd: FormData) {
-    await createSubtask(fd);
-  }
-  async function toggleAction(fd: FormData) {
-    await toggleSubtask(fd);
-  }
-  async function deleteAction(fd: FormData) {
-    await deleteSubtask(fd);
-  }
-
   return (
     <div className="space-y-3">
       {subtasks.length > 0 ? (
-        <div className="mb-2 text-xs text-gray-400">
+        <div className="mb-2 text-xs text-gray-400 dark:text-gray-500">
           {doneCount} de {subtasks.length} completadas
         </div>
       ) : null}
       <ul className="space-y-1.5">
         {subtasks.map((s) => (
           <li key={s.id} className="flex items-center gap-2">
-            <form action={toggleAction} className="flex items-center gap-2">
+            <form action={toggleSubtask} className="flex items-center gap-2">
               <input type="hidden" name="subtaskId" value={s.id} />
               <button
                 type="submit"
                 aria-label={s.done ? "Marcar como pendiente" : "Marcar como completada"}
                 aria-pressed={s.done}
                 className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-                  s.done ? "border-green-500 bg-green-500" : "border-gray-300"
+                  s.done ? "border-green-500 bg-green-500" : "border-gray-300 dark:border-gray-600"
                 }`}
               >
                 {s.done ? (
@@ -54,11 +44,11 @@ export default function SubtaskList({ taskId, subtasks }: Props) {
               </button>
             </form>
 
-            <span className={`flex-1 text-sm ${s.done ? "text-gray-400 line-through" : "text-gray-700"}`}>
+            <span className={`flex-1 text-sm ${s.done ? "text-gray-400 line-through dark:text-gray-500" : "text-gray-700 dark:text-gray-300"}`}>
               {s.title}
             </span>
 
-            <form action={deleteAction}>
+            <form action={deleteSubtask}>
               <input type="hidden" name="subtaskId" value={s.id} />
               <button
                 type="submit"
@@ -74,7 +64,7 @@ export default function SubtaskList({ taskId, subtasks }: Props) {
         ))}
       </ul>
 
-      <form action={createAction} className="flex items-center gap-2">
+      <form action={createSubtask} className="flex items-center gap-2">
         <input type="hidden" name="taskId" value={taskId} />
         <Input name="title" placeholder="Nueva subtarea…" className="flex-1" maxLength={200} />
         <Button type="submit" size="sm">

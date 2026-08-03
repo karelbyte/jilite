@@ -28,22 +28,22 @@ export default function RegisterForm() {
   return (
     <form action={formAction} className="space-y-4">
       <div className="space-y-1">
-        <label htmlFor="name" className="text-sm font-medium text-gray-700">
+        <label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Nombre
         </label>
         <Input id="name" name="name" autoComplete="name" required placeholder="Tu nombre" />
       </div>
       <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium text-gray-700">
+        <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Correo
         </label>
         <Input id="email" name="email" type="email" autoComplete="email" required placeholder="tu@correo.com" />
       </div>
       <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-medium text-gray-700">
+        <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Contraseña
         </label>
-        <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={6} />
+        <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} placeholder="Mín. 8, con mayúscula, número y símbolo" />
       </div>
       {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
       <Button type="submit" disabled={pending} className="w-full">

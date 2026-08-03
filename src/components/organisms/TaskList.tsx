@@ -78,7 +78,7 @@ export default function TaskList({ tasks, users, projectId, search, status, page
           type="button"
           onClick={() => setView("list")}
           className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-            view === "list" ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            view === "list" ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           }`}
         >
           Lista
@@ -87,7 +87,7 @@ export default function TaskList({ tasks, users, projectId, search, status, page
           type="button"
           onClick={() => setView("board")}
           className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-            view === "board" ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            view === "board" ? "bg-brand-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           }`}
         >
           Tablero

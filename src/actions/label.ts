@@ -15,18 +15,18 @@ const LABEL_COLORS = [
   "#ec4899",
 ];
 
-export async function createLabel(formData: FormData) {
+export async function createLabel(formData: FormData): Promise<void> {
   const user = await requireUser();
   const projectId = String(formData.get("projectId") || "");
   const name = String(formData.get("name") || "").trim();
 
-  if (!name) return { error: "El nombre de la etiqueta es obligatorio" };
+  if (!name) return;
 
   const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project) return { error: "Proyecto no encontrado" };
+  if (!project) return;
 
   if (user.role !== "ADMIN" && user.role !== "PROJECT_ADMIN" && project.createdById !== user.id) {
-    return { error: "No tienes permisos para crear etiquetas" };
+    return;
   }
 
   const usedColors = await prisma.label.findMany({
@@ -39,16 +39,15 @@ export async function createLabel(formData: FormData) {
   await prisma.label.create({ data: { name, color, projectId } });
 
   revalidatePath(`/projects/${projectId}`);
-  return { ok: true };
 }
 
-export async function toggleTaskLabel(formData: FormData) {
+export async function toggleTaskLabel(formData: FormData): Promise<void> {
   const user = await requireUser();
   const taskId = String(formData.get("taskId") || "");
   const labelId = String(formData.get("labelId") || "");
 
   const task = await prisma.task.findUnique({ where: { id: taskId } });
-  if (!task) return { error: "Tarea no encontrada" };
+  if (!task) return;
 
   const canEdit =
     user.role === "ADMIN" ||
@@ -56,7 +55,7 @@ export async function toggleTaskLabel(formData: FormData) {
     task.assigneeId === user.id ||
     (user.role === "PROJECT_ADMIN" && task.projectId !== null);
 
-  if (!canEdit) return { error: "No tienes permisos para editar esta tarea" };
+  if (!canEdit) return;
 
   const existing = await prisma.taskLabel.findUnique({
     where: { taskId_labelId: { taskId, labelId } },
@@ -66,10 +65,9 @@ export async function toggleTaskLabel(formData: FormData) {
     await prisma.taskLabel.delete({ where: { taskId_labelId: { taskId, labelId } } });
   } else {
     const label = await prisma.label.findUnique({ where: { id: labelId } });
-    if (!label) return { error: "Etiqueta no encontrada" };
+    if (!label) return;
     await prisma.taskLabel.create({ data: { taskId, labelId } });
   }
 
   revalidatePath(`/tasks/${taskId}`);
-  return { ok: true };
 }

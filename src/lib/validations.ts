@@ -1,9 +1,18 @@
 import { z } from "zod";
 
+export const passwordSchema = z
+  .string()
+  .min(8, "Mínimo 8 caracteres")
+  .max(128)
+  .regex(/[a-z]/, "Debe tener al menos una minúscula")
+  .regex(/[A-Z]/, "Debe tener al menos una mayúscula")
+  .regex(/[0-9]/, "Debe tener al menos un número")
+  .regex(/[^A-Za-z0-9]/, "Debe tener al menos un símbolo");
+
 export const registerSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio").max(80),
   email: z.string().email("Correo inválido"),
-  password: z.string().min(6, "Mínimo 6 caracteres").max(128),
+  password: passwordSchema,
 });
 
 export const loginSchema = z.object({

@@ -14,13 +14,13 @@ export default function LoginForm() {
   return (
     <form action={formAction} className="space-y-4">
       <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium text-gray-700">
+        <label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Correo
         </label>
         <Input id="email" name="email" type="email" autoComplete="email" required placeholder="tu@correo.com" />
       </div>
       <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-medium text-gray-700">
+        <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Contraseña
         </label>
         <Input id="password" name="password" type="password" autoComplete="current-password" required />

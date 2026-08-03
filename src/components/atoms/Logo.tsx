@@ -17,7 +17,7 @@ export default function Logo({ href, className = "" }: Props) {
           <path d="M12 7v6M9 9h6" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
         </svg>
       </span>
-      <span className="text-lg text-gray-900">Jilite</span>
+      <span className="text-lg text-gray-900 dark:text-gray-100">Jilite</span>
     </span>
   );
 

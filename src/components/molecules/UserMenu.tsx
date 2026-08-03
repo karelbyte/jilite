@@ -54,22 +54,22 @@ export default function UserMenu({ user, role }: Props) {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-40 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-2 shadow-lg"
+          className="absolute right-0 z-40 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900"
         >
-          <div className="border-b border-gray-100 px-3 py-2">
-            <p className="text-sm font-medium text-gray-900">{user.name}</p>
-            <p className="truncate text-xs text-gray-400">{user.email}</p>
+          <div className="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.name}</p>
+            <p className="truncate text-xs text-gray-400 dark:text-gray-400">{user.email}</p>
           </div>
-          <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500">
+          <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
             <span>Rol</span>
-            <span className="rounded bg-gray-100 px-1.5 py-0.5">{ROLE_META[role].label}</span>
+            <span className="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-800">{ROLE_META[role].label}</span>
           </div>
           <div className="pt-1">
             <form action={logoutAction}>
               <button
                 type="submit"
                 role="menuitem"
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               >
                 <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
                   <path

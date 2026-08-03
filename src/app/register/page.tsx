@@ -11,7 +11,7 @@ export default async function RegisterPage() {
   return (
     <AuthTemplate title="Crea tu cuenta" subtitle="Empieza a gestionar tus tareas">
       <RegisterForm />
-      <p className="mt-5 text-center text-sm text-gray-500">
+      <p className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">
         ¿Ya tienes cuenta?{" "}
         <Link href="/login" className="font-medium text-brand-700 hover:underline">
           Inicia sesión

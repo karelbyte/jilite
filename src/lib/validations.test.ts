@@ -6,13 +6,22 @@ describe("registerSchema", () => {
     const res = registerSchema.safeParse({
       name: "María Torres",
       email: "maria@jilite.com",
-      password: "secreto123",
+      password: "Secreto123!",
     });
     expect(res.success).toBe(true);
   });
 
   it("rechaza contraseña corta", () => {
     const res = registerSchema.safeParse({ name: "A", email: "a@b.com", password: "123" });
+    expect(res.success).toBe(false);
+  });
+
+  it("rechaza contraseña sin símbolo", () => {
+    const res = registerSchema.safeParse({
+      name: "A",
+      email: "a@b.com",
+      password: "Secreto123",
+    });
     expect(res.success).toBe(false);
   });
 

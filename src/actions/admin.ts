@@ -6,6 +6,8 @@ import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { registerSchema, roleValueSchema } from "@/lib/validations";
+import { sendRegistrationEmail } from "@/lib/email";
+import { generateVerificationToken, verificationTokenExpires } from "@/lib/verification";
 import type { UserStatus } from "@/generated/prisma/client";
 
 export interface ActionState {
@@ -40,7 +42,8 @@ export async function adminCreateUser(
 
   const hashed = await bcrypt.hash(parsed.data.password, 10);
 
-  await prisma.user.create({
+  const verificationToken = status === "INACTIVE" ? generateVerificationToken() : null;
+  const created = await prisma.user.create({
     data: {
       name: parsed.data.name,
       email: parsed.data.email.toLowerCase(),
@@ -48,8 +51,29 @@ export async function adminCreateUser(
       role: role.data,
       status,
       createdById: admin.id,
+      ...(verificationToken
+        ? { verificationToken, verificationTokenExpires: verificationTokenExpires() }
+        : {}),
     },
   });
+
+  if (verificationToken) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const verifyUrl = `${appUrl}/verify-email?token=${encodeURIComponent(verificationToken)}`;
+    try {
+      await sendRegistrationEmail(created.email, {
+        name: created.name,
+        verifyUrl,
+      });
+    } catch (error) {
+      console.error("No se pudo enviar el correo de verificación al usuario creado:", error);
+      return {
+        error: null,
+        message:
+          "Usuario creado, pero no se pudo enviar el correo de verificación. Actívalo manualmente o reintenta.",
+      };
+    }
+  }
 
   revalidatePath("/admin/users");
   await logActivity({
@@ -143,4 +167,34 @@ export async function adminDeleteUser(
     actorId: admin.id,
   });
   return { error: null, message: "Usuario eliminado" };
+}
+
+export async function adminBulkSetStatus(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const admin = await getAuthedUser();
+  if (!admin || admin.role !== "ADMIN") return { error: "No autorizado", message: null };
+
+  const ids = formData.getAll("ids").map((v) => String(v));
+  const statusRaw = String(formData.get("status") || "");
+  if (ids.length === 0) return { error: "Selecciona al menos un usuario", message: null };
+  const status: UserStatus = statusRaw === "ACTIVE" ? "ACTIVE" : "INACTIVE";
+
+  const cleanIds = ids.filter((id) => id !== admin.id);
+  if (cleanIds.length === 0) return { error: "No puedes cambiar tu propio estado", message: null };
+
+  const result = await prisma.user.updateMany({
+    where: { id: { in: cleanIds } },
+    data: { status },
+  });
+
+  revalidatePath("/admin/users");
+  await logActivity({
+    action: "users.bulk_status_changed",
+    entity: "user",
+    detail: `${result.count} usuarios → ${status}`,
+    actorId: admin.id,
+  });
+  return { error: null, message: `${result.count} usuario(s) actualizados` };
 }

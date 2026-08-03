@@ -21,20 +21,20 @@ export default function TaskEditor({ task, users }: Props) {
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="id" value={task.id} />
       <div className="space-y-1">
-        <label htmlFor="title" className="text-sm font-medium text-gray-700">
+        <label htmlFor="title" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Título
         </label>
         <Input id="title" name="title" required maxLength={200} defaultValue={task.title} />
       </div>
       <div className="space-y-1">
-        <label htmlFor="description" className="text-sm font-medium text-gray-700">
+        <label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Descripción
         </label>
         <Textarea id="description" name="description" rows={5} maxLength={5000} defaultValue={task.description ?? ""} />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="space-y-1">
-          <label htmlFor="status" className="text-sm font-medium text-gray-700">
+          <label htmlFor="status" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Estado
           </label>
           <Select id="status" name="status" defaultValue={task.status}>
@@ -46,7 +46,7 @@ export default function TaskEditor({ task, users }: Props) {
           </Select>
         </div>
         <div className="space-y-1">
-          <label htmlFor="priority" className="text-sm font-medium text-gray-700">
+          <label htmlFor="priority" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Prioridad
           </label>
           <Select id="priority" name="priority" defaultValue={task.priority}>
@@ -58,7 +58,7 @@ export default function TaskEditor({ task, users }: Props) {
           </Select>
         </div>
         <div className="space-y-1">
-          <label htmlFor="assigneeId" className="text-sm font-medium text-gray-700">
+          <label htmlFor="assigneeId" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Asignado a
           </label>
           <Select id="assigneeId" name="assigneeId" defaultValue={task.assigneeId ?? ""}>
@@ -73,7 +73,7 @@ export default function TaskEditor({ task, users }: Props) {
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="space-y-1">
-          <label htmlFor="dueDate" className="text-sm font-medium text-gray-700">
+          <label htmlFor="dueDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Fecha límite
           </label>
           <Input

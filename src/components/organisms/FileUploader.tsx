@@ -60,7 +60,7 @@ export default function FileUploader({ taskId }: Props) {
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-400 dark:text-gray-500">
           Imágenes y documentos (máx 10 MB por archivo)
         </span>
       </div>
