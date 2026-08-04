@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { saveUpload, resolvePublicUrl } from "@/lib/uploads";
 
 const MAX_SIZE = 10 * 1024 * 1024;
 
@@ -45,18 +46,19 @@ export async function POST(request: Request) {
   }
 
   const data = Buffer.from(await uploaded.arrayBuffer());
+  const filename = await saveUpload(data, uploaded.name);
 
   const file = await prisma.file.create({
     data: {
       taskId,
       name: uploaded.name,
+      filename,
       contentType: uploaded.type || "application/octet-stream",
-      data,
       uploadedById: user.id,
     },
-    select: { id: true, name: true, contentType: true },
+    select: { id: true, name: true, filename: true, contentType: true },
   });
 
   revalidatePath(`/tasks/${taskId}`);
-  return Response.json({ file });
+  return Response.json({ file, url: resolvePublicUrl(file.filename) });
 }

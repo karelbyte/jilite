@@ -85,17 +85,20 @@ CREATE TABLE "Comment" (
 CREATE TABLE "File" (
     "id" TEXT NOT NULL,
     "taskId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "contentType" TEXT NOT NULL,
-    "data" BYTEA NOT NULL,
-    "uploadedById" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     "name" TEXT NOT NULL,
+     "filename" TEXT NOT NULL,
+     "contentType" TEXT NOT NULL,
+     "uploadedById" TEXT NOT NULL,
+     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "File_pkey" PRIMARY KEY ("id")
+     CONSTRAINT "File_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "File_filename_key" ON "File"("filename");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_verificationToken_key" ON "User"("verificationToken");

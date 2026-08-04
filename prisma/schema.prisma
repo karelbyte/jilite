@@ -124,8 +124,8 @@ model File {
   taskId      String
   task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   name        String
+  filename    String   @unique
   contentType String
-  data        Bytes
   uploadedById String
   uploadedBy  User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())

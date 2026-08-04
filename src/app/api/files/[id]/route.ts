@@ -1,5 +1,7 @@
+import { readFile } from "fs/promises";
 import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { resolveFilePath } from "@/lib/uploads";
 
 export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const user = await getAuthedUser();
@@ -32,7 +34,18 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
     }
   }
 
-  return new Response(Buffer.from(file.data), {
+  if (!file.filename) {
+    return new Response(null, { status: 404 });
+  }
+
+  let buffer: Buffer;
+  try {
+    buffer = await readFile(resolveFilePath(file.filename));
+  } catch {
+    return new Response(null, { status: 404 });
+  }
+
+  return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": file.contentType,
       "Content-Disposition": `inline; filename="${encodeURIComponent(file.name)}"`,

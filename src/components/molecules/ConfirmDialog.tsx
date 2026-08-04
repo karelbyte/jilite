@@ -18,6 +18,7 @@ interface Props {
   confirmSize?: "sm" | "md";
   size?: "sm" | "md";
   disabled?: boolean;
+  formFields?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -30,8 +31,9 @@ export default function ConfirmDialog({
   confirmVariant = "danger",
   confirmSize = "sm",
   size = "sm",
-  disabled = false,
-  children,
+   disabled = false,
+   formFields,
+   children,
 }: Props) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -57,6 +59,7 @@ export default function ConfirmDialog({
       <Modal open={open} onClose={() => setOpen(false)} title={title}>
         <p className="text-sm text-gray-600 dark:text-gray-300">{message}</p>
         <form action={formAction} className="mt-6 flex justify-end gap-3">
+          {formFields}
           <Button type="button" variant="secondary" onClick={() => setOpen(false)} disabled={pending}>
             Cancelar
           </Button>

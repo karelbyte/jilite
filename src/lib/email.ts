@@ -185,3 +185,64 @@ export async function sendPasswordChangedEmail(to: string, data: PasswordChanged
     html,
   });
 }
+
+export interface TaskFieldChange {
+  field: string;
+  label: string;
+  from: string | null;
+  to: string | null;
+}
+
+export interface TaskUpdatedEmail {
+  name: string;
+  taskTitle: string;
+  projectName: string;
+  changes: TaskFieldChange[];
+  editorName: string;
+  taskUrl: string;
+}
+
+export async function sendTaskUpdatedEmail(to: string, data: TaskUpdatedEmail) {
+  const from = process.env.RESEND_FROM ?? "Jilite <onboarding@resend.dev>";
+
+  const changesLines = data.changes
+    .map(
+      (c) =>
+        `<div style="margin:0 0 6px; font-size:14px; color:#374151;">
+          <strong>${esc(c.label)}</strong>:
+          <span style="color:#6b7280;">${esc(c.from ?? "—")} → ${esc(c.to ?? "—")}</span>
+        </div>`
+    )
+    .join("\n");
+
+  const html = `
+    <div style="font-family: system-ui, sans-serif; background:#eff6ff; padding:32px;">
+      <div style="max-width:560px; margin:0 auto; background:#ffffff; border-radius:12px; padding:32px;">
+        <h2 style="color:#1e40af; margin:0 0 8px;">Hola ${esc(data.name)}</h2>
+        <p style="color:#374151; margin:0 0 8px;">
+          <strong>${esc(data.editorName)}</strong> actualizó <strong>${esc(data.taskTitle)}</strong>
+          (${esc(data.projectName)}).
+        </p>
+        <p style="color:#374151; margin:0 0 16px; font-size:13px;">
+          Cambios realizados:
+        </p>
+        <div style="background:#f0f9ff; border-left:4px solid #3b82f6; padding:12px 16px; border-radius:8px; margin:0 0 20px;">
+          ${changesLines}
+        </div>
+        <a href="${esc(data.taskUrl)}" style="display:inline-block; background:#2563eb; color:#ffffff; text-decoration:none; padding:12px 20px; border-radius:8px; font-weight:600;">
+          Ver la tarea
+        </a>
+        <p style="color:#9ca3af; margin:24px 0 0; font-size:12px;">
+          No contestes a este correo; las respuestas no se revisan.
+        </p>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from,
+    to,
+    subject: `Tarea actualizada: "${data.taskTitle}"`,
+    html,
+  });
+}

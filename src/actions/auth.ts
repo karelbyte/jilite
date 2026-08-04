@@ -142,7 +142,7 @@ export async function verifyEmailAction(token: string): Promise<{ ok: boolean; m
     return { ok: true, message: "Tu correo ya estaba verificado." };
   }
   if (!user.verificationTokenExpires || user.verificationTokenExpires < new Date()) {
-    return { ok: false, message: "El enlace ha caducado. Regístrate de nuevo para recibir otro." };
+    return { ok: false, message: "El enlace ha caducado. Puedes reenviar el correo de verificación desde la página de inicio de sesión." };
   }
 
   await prisma.user.update({

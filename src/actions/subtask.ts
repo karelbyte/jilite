@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import type { ActionState } from "@/actions/admin";
 
 async function canEditTask(userId: string, role: string, taskId: string) {
   const task = await prisma.task.findUnique({ where: { id: taskId } });
@@ -45,15 +46,19 @@ export async function toggleSubtask(formData: FormData): Promise<void> {
   revalidatePath(`/tasks/${subtask.taskId}`);
 }
 
-export async function deleteSubtask(formData: FormData): Promise<void> {
+export async function deleteSubtask(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const user = await requireUser();
   const subtaskId = String(formData.get("subtaskId") || "");
   const subtask = await prisma.subtask.findUnique({ where: { id: subtaskId } });
-  if (!subtask) return;
+  if (!subtask) return { error: "Subtarea no encontrada", message: null };
 
   const task = await canEditTask(user.id, user.role, subtask.taskId);
-  if (!task) return;
+  if (!task) return { error: "No tienes permiso para eliminar esta subtarea", message: null };
 
   await prisma.subtask.delete({ where: { id: subtaskId } });
   revalidatePath(`/tasks/${subtask.taskId}`);
+  return { error: null, message: "Subtarea eliminada" };
 }

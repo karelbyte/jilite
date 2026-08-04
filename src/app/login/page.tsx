@@ -12,6 +12,11 @@ export default async function LoginPage() {
     <AuthTemplate title="Iniciar sesión" subtitle="Accede a tu cuenta">
       <LoginForm />
       <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
+        <Link href="/resend-verification" className="font-medium text-brand-700 hover:underline">
+          ¿No recibiste el correo de verificación?
+        </Link>
+      </p>
+      <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
         <Link href="/forgot-password" className="font-medium text-brand-700 hover:underline">
           ¿Olvidaste tu contraseña?
         </Link>

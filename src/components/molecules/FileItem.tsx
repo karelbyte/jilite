@@ -1,21 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { deleteFile } from "@/actions/comment";
-import Button from "@/components/atoms/Button";
+import ConfirmDialog from "@/components/molecules/ConfirmDialog";
 
 interface Props {
   file: { id: string; name: string; contentType: string };
 }
 
 export default function FileItem({ file }: Props) {
-  const [pending, setPending] = useState(false);
   const isImage = file.contentType.startsWith("image/");
-
-  const onDelete = async () => {
-    setPending(true);
-    await deleteFile(file.id);
-  };
 
   return (
     <li className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
@@ -28,15 +21,30 @@ export default function FileItem({ file }: Props) {
       >
         {isImage ? "Imagen" : file.name}
       </a>
-      <Button
-        variant="ghost"
+      <ConfirmDialog
+        action={deleteFile.bind(null, file.id)}
+        title="Eliminar archivo"
+        message="¿Seguro que quieres eliminar este archivo? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        triggerVariant="ghost"
+        confirmVariant="danger"
         size="sm"
-        onClick={onDelete}
-        disabled={pending}
-        className="text-red-600 hover:bg-red-50"
       >
-        Eliminar
-      </Button>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+          className="h-4 w-4 text-gray-400 hover:text-red-600"
+        >
+          <path
+            d="M6 6l12 12M18 6L6 18"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </ConfirmDialog>
     </li>
   );
 }

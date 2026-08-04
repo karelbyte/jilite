@@ -1,6 +1,7 @@
 import { createSubtask, toggleSubtask, deleteSubtask } from "@/actions/subtask";
 import Button from "@/components/atoms/Button";
 import Input from "@/components/atoms/Input";
+import ConfirmDialog from "@/components/molecules/ConfirmDialog";
 
 interface Subtask {
   id: string;
@@ -48,18 +49,30 @@ export default function SubtaskList({ taskId, subtasks }: Props) {
               {s.title}
             </span>
 
-            <form action={deleteSubtask}>
-              <input type="hidden" name="subtaskId" value={s.id} />
-              <button
-                type="submit"
-                aria-label="Eliminar subtarea"
-                className="text-gray-300 hover:text-red-600"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
-                  <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </button>
-            </form>
+             <ConfirmDialog
+               action={deleteSubtask}
+               title="Eliminar subtarea"
+               message="¿Seguro que quieres eliminar esta subtarea?"
+               confirmLabel="Eliminar"
+               triggerVariant="ghost"
+               confirmVariant="danger"
+               size="sm"
+               formFields={<input type="hidden" name="subtaskId" value={s.id} />}
+             >
+               <svg
+                 viewBox="0 0 24 24"
+                 className="h-4 w-4 text-gray-300 hover:text-red-600"
+                 fill="none"
+                 aria-label="Eliminar subtarea"
+               >
+                 <path
+                   d="M6 6l12 12M18 6L6 18"
+                   stroke="currentColor"
+                   strokeWidth="2"
+                   strokeLinecap="round"
+                 />
+               </svg>
+             </ConfirmDialog>
           </li>
         ))}
       </ul>

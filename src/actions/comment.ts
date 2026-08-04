@@ -5,6 +5,7 @@ import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { sendCommentNotification } from "@/lib/email";
 import { commentSchema } from "@/lib/validations";
+import type { ActionState as AdminActionState } from "@/actions/admin";
 
 export interface ActionState {
   error: string | null;
@@ -87,15 +88,15 @@ export async function createComment(_prev: ActionState, formData: FormData) {
   return { error: null };
 }
 
-export async function deleteFile(fileId: string) {
+export async function deleteFile(fileId: string): Promise<AdminActionState> {
   const user = await getAuthedUser();
-  if (!user) return { error: "No autorizado" };
+  if (!user) return { error: "No autorizado", message: null };
 
   const file = await prisma.file.findUnique({
     where: { id: fileId },
     include: { task: { select: { projectId: true, createdById: true } } },
   });
-  if (!file) return { error: "Archivo no encontrado" };
+  if (!file) return { error: "Archivo no encontrado", message: null };
 
   if (user.role !== "ADMIN") {
     const project = await prisma.project.findUnique({
@@ -108,12 +109,12 @@ export async function deleteFile(fileId: string) {
         where: { projectId_userId: { projectId: project.id, userId: user.id } },
       }));
     if (!project || (!isOwner && !membership)) {
-      return { error: "No tienes acceso a este archivo" };
+      return { error: "No tienes acceso a este archivo", message: null };
     }
   }
 
   await prisma.file.delete({ where: { id: fileId } });
 
   revalidatePath(`/tasks/${file.taskId}`);
-  return { error: null };
+  return { error: null, message: "Archivo eliminado" };
 }
