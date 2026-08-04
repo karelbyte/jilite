@@ -8,9 +8,10 @@ import FileUploader from "@/components/organisms/FileUploader";
 interface Props {
   projectId: string;
   users: { id: string; name: string }[];
+  defaultDueDate?: string;
 }
 
-export default function NewTaskView({ projectId, users }: Props) {
+export default function NewTaskView({ projectId, users, defaultDueDate }: Props) {
   const [createdId, setCreatedId] = useState<string | null>(null);
 
   return (
@@ -28,6 +29,7 @@ export default function NewTaskView({ projectId, users }: Props) {
         <TaskForm
           projectId={projectId}
           users={users}
+          defaultDueDate={defaultDueDate}
           onCreated={(id) => setCreatedId(id)}
         />
       </div>

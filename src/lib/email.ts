@@ -48,6 +48,42 @@ export async function sendCommentNotification(
   });
 }
 
+interface MentionNotification {
+  taskTitle: string;
+  mentionerName: string;
+  commentBody: string;
+  taskUrl: string;
+}
+
+export async function sendMentionNotification(to: string, data: MentionNotification) {
+  const from = process.env.RESEND_FROM ?? "Jilite <onboarding@resend.dev>";
+
+  const html = `
+    <div style="font-family: system-ui, sans-serif; background:#fdf2f8; padding:32px;">
+      <div style="max-width:520px; margin:0 auto; background:#ffffff; border-radius:12px; padding:32px;">
+        <h2 style="color:#9d174d; margin:0 0 8px;">Te mencionaron</h2>
+        <p style="color:#374151; margin:0 0 20px;">
+          <strong>${esc(data.mentionerName)}</strong> te mencionó en
+          <strong>${esc(data.taskTitle)}</strong>
+        </p>
+        <div style="background:#fdf2f8; border-left:4px solid #ec4899; padding:16px; border-radius:8px; color:#374151;">
+          ${esc(data.commentBody)}
+        </div>
+        <a href="${esc(data.taskUrl)}" style="display:inline-block; margin-top:24px; background:#db2777; color:#ffffff; text-decoration:none; padding:12px 20px; border-radius:8px; font-weight:600;">
+          Ver la tarea
+        </a>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from,
+    to,
+    subject: `Te mencionaron en "${data.taskTitle}"`,
+    html,
+  });
+}
+
 interface RegistrationEmail {
   name: string;
   verifyUrl: string;
@@ -374,8 +410,68 @@ export async function sendInvitationEmail(to: string, data: InvitationEmail) {
   });
 }
 
-function formatDate(d: Date): string {
-  return d.toLocaleDateString("es", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+interface DigestEmail {
+  name: string;
+  periodLabel: string;
+  overdue: { title: string; project: string; taskUrl: string }[];
+  upcoming: { title: string; project: string; due: string; taskUrl: string }[];
+  completed: { title: string; project: string; taskUrl: string }[];
+}
+
+export async function sendDigestEmail(to: string, data: DigestEmail) {
+  const from = process.env.RESEND_FROM ?? "Jilite <onboarding@resend.dev>";
+
+  const renderList = (
+    items: Array<{ title: string; project: string; taskUrl: string; due?: string }>,
+    color: string,
+    empty: string
+  ) =>
+    items.length === 0
+      ? `<p style="color:#9ca3af; font-size:13px; margin:0 0 16px;">${empty}</p>`
+      : items
+          .map(
+            (t) =>
+              `<div style="margin:0 0 8px;">
+                <a href="${esc(t.taskUrl)}" style="color:#1f2937; text-decoration:none; font-weight:600;">${esc(t.title)}</a>
+                <span style="color:#6b7280; font-size:13px;"> — ${esc(t.project)}${t.due ? ` · vence ${esc(t.due)}` : ""}</span>
+              </div>`
+          )
+          .join("");
+
+  const html = `
+    <div style="font-family: system-ui, sans-serif; background:#f0fdf4; padding:32px;">
+      <div style="max-width:560px; margin:0 auto; background:#ffffff; border-radius:12px; padding:32px;">
+        <h2 style="color:#166534; margin:0 0 6px;">Hola, ${esc(data.name)}</h2>
+        <p style="color:#374151; margin:0 0 24px;">Tu resumen ${esc(data.periodLabel)} de Jilite.</p>
+
+        <h3 style="color:#b91c1c; margin:0 0 8px; font-size:15px;">Vencidas</h3>
+        ${renderList(data.overdue, "#b91c1c", "Sin tareas vencidas. 🎉")}
+
+        <h3 style="color:#1e40af; margin:0 0 8px; font-size:15px;">Próximas</h3>
+        ${renderList(data.upcoming, "#1e40af", "Sin tareas próximas.")}
+
+        <h3 style="color:#15803d; margin:0 0 8px; font-size:15px;">Completadas</h3>
+        ${renderList(data.completed, "#15803d", "Sin tareas completadas.")}
+
+        <a href="${esc(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000")}/dashboard" style="display:inline-block; margin-top:16px; background:#16a34a; color:#ffffff; text-decoration:none; padding:12px 20px; border-radius:8px; font-weight:600;">
+          Ir al tablero
+        </a>
+        <p style="color:#9ca3af; margin:24px 0 0; font-size:12px;">
+          No contestes a este correo; las respuestas no se revisan.
+        </p>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from,
+    to,
+    subject: `Tu resumen ${data.periodLabel} de Jilite`,
+    html,
+  });
+}
+
+function formatDate(d: Date): string {  return d.toLocaleDateString("es", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 function colorHex(hex?: string): string {

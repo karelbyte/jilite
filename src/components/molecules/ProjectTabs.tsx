@@ -11,6 +11,7 @@ const TABS: Tab[] = [
   { id: "tareas", label: "Tareas" },
   { id: "miembros", label: "Miembros" },
   { id: "archivos", label: "Archivos" },
+  { id: "actividad", label: "Actividad" },
 ];
 
 export default function ProjectTabs({ active }: { active: string }) {

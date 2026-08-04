@@ -11,7 +11,15 @@ import { PRIORITY_META, STATUSES, STATUS_META } from "@/lib/constants";
 import type { Status } from "@/generated/prisma/client";
 import type { TaskListItem } from "@/components/molecules/TaskCard";
 
-export default function KanbanBoard({ tasks }: { tasks: TaskListItem[] }) {
+export default function KanbanBoard({
+  tasks,
+  canEdit = true,
+  showProject = false,
+}: {
+  tasks: TaskListItem[];
+  canEdit?: boolean;
+  showProject?: boolean;
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const [dragId, setDragId] = useState<string | null>(null);
@@ -63,15 +71,15 @@ export default function KanbanBoard({ tasks }: { tasks: TaskListItem[] }) {
         return (
           <div
             key={s}
-            onDragOver={(e) => e.preventDefault()}
-            onDragEnter={() => {
+            onDragOver={canEdit ? (e) => e.preventDefault() : undefined}
+            onDragEnter={canEdit ? () => {
               if (dragId && !over) setOver({ status: s, index: items.length });
-            }}
-            onDragLeave={() => setOver((cur) => (cur?.status === s ? null : cur))}
-            onDrop={(e) => {
+            } : undefined}
+            onDragLeave={canEdit ? () => setOver((cur) => (cur?.status === s ? null : cur)) : undefined}
+            onDrop={canEdit ? (e) => {
               e.preventDefault();
               onDrop(s, over?.status === s ? over.index : items.length);
-            }}
+            } : undefined}
             aria-label={`Columna ${meta.label}`}
             className={`flex min-h-[200px] flex-col rounded-xl border p-3 ${
               over?.status === s
@@ -92,15 +100,17 @@ export default function KanbanBoard({ tasks }: { tasks: TaskListItem[] }) {
                 return (
                   <div
                     key={t.id}
-                    draggable
-                    onDragStart={() => setDragId(t.id)}
-                    onDragEnter={() => setOver({ status: s, index: idx })}
-                    onDragEnd={() => {
+                    draggable={canEdit}
+                    onDragStart={canEdit ? () => setDragId(t.id) : undefined}
+                    onDragEnter={canEdit ? () => setOver({ status: s, index: idx }) : undefined}
+                    onDragEnd={canEdit ? () => {
                       setDragId(null);
                       setOver(null);
-                    }}
+                    } : undefined}
                     aria-label={`Mover ${t.title}`}
-                    className={`cursor-grab rounded-lg border bg-white p-3 shadow-sm active:cursor-grabbing ${
+                    className={`rounded-lg border bg-white p-3 shadow-sm ${
+                      canEdit ? "cursor-grab active:cursor-grabbing" : ""
+                    } ${
                       over?.status === s && over.index === idx
                         ? "border-brand-400 ring-2 ring-brand-200 dark:ring-brand-500/40"
                         : "border-gray-200 dark:border-gray-700 dark:bg-gray-900"
@@ -116,6 +126,11 @@ export default function KanbanBoard({ tasks }: { tasks: TaskListItem[] }) {
                     >
                       {t.title}
                     </Link>
+                    {showProject && t.projectName ? (
+                      <span className="mt-2 inline-block rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                        {t.projectName}
+                      </span>
+                    ) : null}
                     {t.assignee ? (
                       <span className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                         <Avatar name={t.assignee.name} src={t.assignee.image} size="sm" />

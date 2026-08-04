@@ -1,9 +1,21 @@
 import { getAuthedUser, getVisibleProjectIds } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
+import { logger, requestIdFrom } from "@/lib/logger";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const started = Date.now();
   const user = await getAuthedUser();
-  if (!user) return new Response("Unauthorized", { status: 401 });
+  if (!user) {
+    logger.warn("ics.unauthorized", { requestId: requestIdFrom(request) });
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const rl = checkRateLimit(`ics:${user.id}`, { limit: 30 });
+  if (!rl.allowed) {
+    logger.warn("ics.rate_limited", { requestId: requestIdFrom(request), userId: user.id });
+    return rateLimitResponse(rl.retryAfterMs);
+  }
 
   const projectIds = await getVisibleProjectIds(user);
   if (projectIds.length === 0) {
@@ -59,6 +71,13 @@ export async function GET() {
 
   lines.push("END:VCALENDAR");
   const body = lines.filter((l) => l !== "").join("\r\n");
+
+  logger.info("ics.completed", {
+    requestId: requestIdFrom(request),
+    userId: user.id,
+    events: tasks.length,
+    durationMs: Date.now() - started,
+  });
 
   return new Response(body, {
     headers: {

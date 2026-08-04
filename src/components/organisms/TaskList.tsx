@@ -29,6 +29,7 @@ interface Props {
   savedViews?: { id: string; name: string; filters: unknown }[];
   page: number;
   totalPages: number;
+  canEdit?: boolean;
 }
 
 export default function TaskList({
@@ -44,6 +45,7 @@ export default function TaskList({
   savedViews = [],
   page,
   totalPages,
+  canEdit = true,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -269,9 +271,11 @@ export default function TaskList({
             </div>
           </form>
         </Modal>
-        <Link href={`/tasks/new?project=${encodeURIComponent(projectId)}`} className="inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-          Nueva tarea
-        </Link>
+        {canEdit ? (
+          <Link href={`/tasks/new?project=${encodeURIComponent(projectId)}`} className="inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+            Nueva tarea
+          </Link>
+        ) : null}
       </div>
 
       <div className="flex gap-2">
@@ -301,10 +305,10 @@ export default function TaskList({
           description="Crea tu primera tarea o ajusta los filtros de búsqueda."
         />
       ) : view === "board" ? (
-        <KanbanBoard tasks={tasks} />
+        <KanbanBoard tasks={tasks} canEdit={canEdit} />
       ) : (
         <div className="space-y-3">
-          {selected.length > 0 ? (
+          {canEdit && selected.length > 0 ? (
             <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
               <span className="text-sm text-gray-600 dark:text-gray-300">
                 {selected.length} tarea(s) seleccionada(s)
@@ -403,39 +407,43 @@ export default function TaskList({
             </div>
           ) : null}
 
-          <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
-            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-              <input
-                type="checkbox"
-                className="h-4 w-4"
-                checked={tasks.length > 0 && tasks.every((t) => selected.includes(t.id))}
-                onChange={(e) =>
-                  setSelected(e.target.checked ? tasks.map((t) => t.id) : [])
-                }
-              />
-              Seleccionar todo
-            </label>
-          </div>
+          {canEdit ? (
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+              <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={tasks.length > 0 && tasks.every((t) => selected.includes(t.id))}
+                  onChange={(e) =>
+                    setSelected(e.target.checked ? tasks.map((t) => t.id) : [])
+                  }
+                />
+                Seleccionar todo
+              </label>
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {tasks.map((t) => (
               <div key={t.id} className="relative">
-                <label
-                  htmlFor={`task-${t.id}`}
-                  className="absolute top-3 left-3 z-10 flex h-4 w-4 cursor-pointer items-center justify-center rounded border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800"
-                >
-                  <input
-                    id={`task-${t.id}`}
-                    type="checkbox"
-                    className="h-3 w-3 cursor-pointer"
-                    checked={selected.includes(t.id)}
-                    onChange={(e) => {
-                      const next = e.target.checked
-                        ? [...selected, t.id]
-                        : selected.filter((id) => id !== t.id);
-                      setSelected(next);
-                    }}
-                  />
-                </label>
+                {canEdit ? (
+                  <label
+                    htmlFor={`task-${t.id}`}
+                    className="absolute top-3 left-3 z-10 flex h-4 w-4 cursor-pointer items-center justify-center rounded border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800"
+                  >
+                    <input
+                      id={`task-${t.id}`}
+                      type="checkbox"
+                      className="h-3 w-3 cursor-pointer"
+                      checked={selected.includes(t.id)}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...selected, t.id]
+                          : selected.filter((id) => id !== t.id);
+                        setSelected(next);
+                      }}
+                    />
+                  </label>
+                ) : null}
                 <TaskCard task={t} />
               </div>
             ))}

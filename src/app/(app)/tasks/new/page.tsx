@@ -5,9 +5,9 @@ import NewTaskView from "@/components/organisms/NewTaskView";
 export default async function NewTaskPage({
   searchParams,
 }: {
-  searchParams: Promise<{ project?: string }>;
+  searchParams: Promise<{ project?: string; date?: string }>;
 }) {
-  const { project } = await searchParams;
+  const { project, date } = await searchParams;
   if (!project) redirect("/dashboard");
 
   const user = await requireUser();
@@ -15,6 +15,7 @@ export default async function NewTaskPage({
   if (!access.project || access.access === null) redirect("/dashboard");
 
   const users = await getAssignableUsers(project);
+  const defaultDueDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined;
 
-  return <NewTaskView projectId={project} users={users} />;
+  return <NewTaskView projectId={project} users={users} defaultDueDate={defaultDueDate} />;
 }

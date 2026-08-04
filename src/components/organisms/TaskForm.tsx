@@ -13,9 +13,10 @@ interface Props {
   users: { id: string; name: string }[];
   onSuccess?: () => void;
   onCreated?: (taskId: string) => void;
+  defaultDueDate?: string;
 }
 
-export default function TaskForm({ projectId, users, onSuccess, onCreated }: Props) {
+export default function TaskForm({ projectId, users, onSuccess, onCreated, defaultDueDate }: Props) {
   const [state, formAction, pending] = useActionState(createTask, { error: null, id: null });
   const wasPending = useRef(false);
 
@@ -48,7 +49,7 @@ export default function TaskForm({ projectId, users, onSuccess, onCreated }: Pro
         </label>
         <MarkdownEditor id="description" name="description" rows={4} placeholder="Detalles de la tarea" />
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1">
           <label htmlFor="status" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Estado
@@ -77,7 +78,7 @@ export default function TaskForm({ projectId, users, onSuccess, onCreated }: Pro
           <label htmlFor="dueDate" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Fecha límite
           </label>
-          <Input id="dueDate" name="dueDate" type="date" />
+          <Input id="dueDate" name="dueDate" type="date" defaultValue={defaultDueDate ?? ""} />
         </div>
         <div className="space-y-1">
           <label htmlFor="assigneeId" className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -90,6 +91,17 @@ export default function TaskForm({ projectId, users, onSuccess, onCreated }: Pro
                 {u.name}
               </option>
             ))}
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="recurrence" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Repetir
+          </label>
+          <Select id="recurrence" name="recurrence" defaultValue="">
+            <option value="">No repetir</option>
+            <option value="DAILY">Diario</option>
+            <option value="WEEKLY">Semanal</option>
+            <option value="MONTHLY">Mensual</option>
           </Select>
         </div>
       </div>

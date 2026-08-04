@@ -1,10 +1,16 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
 import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
+import { logger, requestIdFrom } from "@/lib/logger";
 
 export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
+  const started = Date.now();
   const user = await getAuthedUser();
   if (!user) return new Response(null, { status: 401 });
+
+  const rl = checkRateLimit(`pdf:${user.id}`, { limit: 20 });
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfterMs);
 
   const { id } = await ctx.params;
 
@@ -105,6 +111,12 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
   }
 
   const pdfBytes = await doc.save();
+  logger.info("pdf.completed", {
+    requestId: requestIdFrom(request),
+    userId: user.id,
+    taskId: id,
+    durationMs: Date.now() - started,
+  });
   return new Response(new Uint8Array(pdfBytes), {
     headers: {
       "Content-Type": "application/pdf",

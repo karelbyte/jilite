@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAuthedUser } from "@/lib/rbac";
+import { getAuthedUser, isViewerOf } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { sendTaskAssignedEmail, sendTaskUpdatedEmail, TaskFieldChange } from "@/lib/email";
 import { postWebhook } from "@/lib/notify";
 import { logActivity } from "@/lib/activity";
 import { statusSchema, prioritySchema, taskSchema } from "@/lib/validations";
-import type { Priority, Status } from "@/generated/prisma/client";
+import { createNotification } from "@/lib/notifications";
+import type { Priority, Recurrence, Status } from "@/generated/prisma/client";
 
 export interface ActionState {
   error: string | null;
@@ -38,6 +39,13 @@ async function notifyAssignee(assigneeId: string | undefined, projectName: strin
       taskTitle,
       projectName,
       taskUrl: `${appUrl}/tasks/${taskId}`,
+    });
+    await createNotification({
+      userId: assigneeId,
+      type: "assignment",
+      title: `Te asignaron la tarea "${taskTitle}"`,
+      body: projectName,
+      taskId,
     });
   } catch (error) {
     console.error("No se pudo enviar la notificación de asignación:", error);
@@ -81,10 +89,10 @@ async function notifyTaskRecipients(input: NotifyTaskRecipientsInput) {
     }),
   ]);
 
-  const recipients = new Map<string, { email: string; name: string }>();
+  const recipients = new Map<string, { id: string; email: string; name: string }>();
   const add = (u: { id: string; email: string; name: string; status: string } | null | undefined) => {
     if (u && u.email && u.status === "ACTIVE" && !excludedIds.has(u.id)) {
-      recipients.set(u.email, { email: u.email, name: u.name });
+      recipients.set(u.email, { id: u.id, email: u.email, name: u.name });
     }
   };
 
@@ -100,6 +108,18 @@ async function notifyTaskRecipients(input: NotifyTaskRecipientsInput) {
         changes,
         editorName,
         taskUrl,
+      })
+    )
+  );
+
+  await Promise.allSettled(
+    [...recipients.values()].map((r) =>
+      createNotification({
+        userId: r.id,
+        type: "task_updated",
+        title: `Tarea actualizada: "${taskTitle}"`,
+        body: `${editorName} (${changes.map((c) => c.label).join(", ")})`,
+        taskId,
       })
     )
   );
@@ -119,6 +139,7 @@ export async function createTask(_prev: ActionState, formData: FormData): Promis
     priority: formData.get("priority") || "MEDIUM",
     assigneeId: formData.get("assigneeId") || undefined,
     dueDate: formData.get("dueDate") || undefined,
+    recurrence: formData.get("recurrence") || undefined,
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -126,11 +147,15 @@ export async function createTask(_prev: ActionState, formData: FormData): Promis
   const project = await prisma.project.findUnique({ where: { id: projectId } });
   if (!project) return { error: "Proyecto no encontrado" };
 
+  if (await isViewerOf(user, projectId)) {
+    return { error: "No tienes permisos para crear tareas" };
+  }
+
   if (!(await canCreateTaskIn(user.id, user.role, project))) {
     return { error: "No tienes acceso a este proyecto" };
   }
 
-  const { title, description, status, priority, assigneeId, dueDate } = parsed.data;
+  const { title, description, status, priority, assigneeId, dueDate, recurrence } = parsed.data;
 
   if (assigneeId) {
     const member = await prisma.projectMember.findUnique({
@@ -149,6 +174,7 @@ export async function createTask(_prev: ActionState, formData: FormData): Promis
       assigneeId: assigneeId || null,
       createdById: user.id,
       dueDate: dueDate ? new Date(dueDate) : null,
+      recurrence: recurrence ? (recurrence as Recurrence) : null,
     },
   });
 
@@ -182,12 +208,17 @@ export async function updateTask(_prev: ActionState, formData: FormData) {
     priority: formData.get("priority"),
     assigneeId: formData.get("assigneeId") || undefined,
     dueDate: formData.get("dueDate") || undefined,
+    recurrence: formData.get("recurrence") || undefined,
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const task = await prisma.task.findUnique({ where: { id } });
   if (!task) return { error: "Tarea no encontrada" };
+
+  if (await isViewerOf(user, task.projectId)) {
+    return { error: "No tienes permisos para editar esta tarea" };
+  }
 
   if (user.role === "ADMIN") {
     // full access
@@ -201,17 +232,18 @@ export async function updateTask(_prev: ActionState, formData: FormData) {
       return { error: "No tienes permisos para editar esta tarea" };
     }
     if (task.createdById !== user.id) {
-      const { title, description, priority, assigneeId } = parsed.data;
+      const { title, description, priority, assigneeId, recurrence } = parsed.data;
       const unchanged =
         task.title === title &&
         (task.description ?? null) === (description || null) &&
         task.priority === priority &&
-        task.assigneeId === (assigneeId || null);
+        task.assigneeId === (assigneeId || null) &&
+        task.recurrence === (recurrence || null);
       if (!unchanged) return { error: "Solo puedes cambiar el estado de esta tarea" };
     }
   }
 
-  const { title, description, status, priority, assigneeId, dueDate } = parsed.data;
+  const { title, description, status, priority, assigneeId, dueDate, recurrence } = parsed.data;
 
   if (assigneeId && assigneeId !== task.assigneeId) {
     const member = await prisma.projectMember.findUnique({
@@ -232,6 +264,7 @@ export async function updateTask(_prev: ActionState, formData: FormData) {
       priority,
       assigneeId: assigneeId || null,
       dueDate: dueDate ? new Date(dueDate) : null,
+      recurrence: recurrence ? (recurrence as Recurrence) : null,
     },
   });
 
@@ -328,6 +361,10 @@ export async function updateTaskStatus(_prev: ActionState, formData: FormData) {
     },
   });
   if (!task) return { error: "Tarea no encontrada" };
+
+  if (await isViewerOf(user, task.projectId)) {
+    return { error: "No tienes permisos para mover esta tarea" };
+  }
 
   const canManage =
     user.role === "ADMIN" ||
@@ -473,6 +510,8 @@ export async function deleteTask(id: string) {
   const task = await prisma.task.findUnique({ where: { id } });
   if (!task) return;
 
+  if (await isViewerOf(user, task.projectId)) return;
+
   if (user.role === "ADMIN") {
     // full access
   } else if (user.role === "PROJECT_ADMIN") {
@@ -508,6 +547,10 @@ export async function moveTask(id: string, status: string, position?: number): P
   const canManage =
     user.role === "ADMIN" || (user.role === "PROJECT_ADMIN" && project?.createdById === user.id);
 
+  if (await isViewerOf(user, task.projectId)) {
+    return { error: "No tienes permisos para mover esta tarea" };
+  }
+
   if (!canManage && task.assigneeId !== user.id && task.createdById !== user.id) {
     return { error: "No tienes permisos para mover esta tarea" };
   }
@@ -520,6 +563,7 @@ export async function moveTask(id: string, status: string, position?: number): P
 
   revalidatePath(`/projects/${task.projectId}`);
   revalidatePath(`/tasks/${id}`);
+  revalidatePath("/board");
   await logActivity({
     action: `task.status:${parsed.data}`,
     entity: "task",

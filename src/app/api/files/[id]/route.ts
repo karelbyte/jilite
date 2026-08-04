@@ -2,8 +2,11 @@ import { readFile } from "fs/promises";
 import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { resolveFilePath } from "@/lib/uploads";
+import { logger, requestIdFrom } from "@/lib/logger";
 
 export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
+  const started = Date.now();
+  const requestId = requestIdFrom(request);
   const user = await getAuthedUser();
   if (!user) {
     return new Response(null, { status: 401 });
@@ -41,9 +44,23 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
   let buffer: Buffer;
   try {
     buffer = await readFile(resolveFilePath(file.filename));
-  } catch {
+  } catch (error) {
+    logger.error("files.read_error", {
+      requestId,
+      fileId: id,
+      filename: file.filename,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return new Response(null, { status: 404 });
   }
+
+  logger.info("files.completed", {
+    requestId,
+    fileId: id,
+    userId: user.id,
+    bytes: buffer.length,
+    durationMs: Date.now() - started,
+  });
 
   return new Response(new Uint8Array(buffer), {
     headers: {

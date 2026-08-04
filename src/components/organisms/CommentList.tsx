@@ -8,9 +8,11 @@ interface Props {
       author: { name: string; image: string | null };
     }
   >;
+  memberNames: string[];
+  projectId: string;
 }
 
-export default function CommentList({ comments }: Props) {
+export default function CommentList({ comments, memberNames, projectId }: Props) {
   if (comments.length === 0) {
     return (
       <EmptyState
@@ -23,7 +25,12 @@ export default function CommentList({ comments }: Props) {
   return (
     <div className="space-y-4">
       {comments.map((comment) => (
-        <CommentItem key={comment.id} comment={comment} />
+        <CommentItem
+          key={comment.id}
+          comment={comment}
+          memberNames={memberNames}
+          projectId={projectId}
+        />
       ))}
     </div>
   );

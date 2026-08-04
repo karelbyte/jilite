@@ -27,6 +27,7 @@ export const taskSchema = z.object({
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
   assigneeId: z.string().optional().or(z.literal("")),
   dueDate: z.string().optional().or(z.literal("")),
+  recurrence: z.enum(["DAILY", "WEEKLY", "MONTHLY"]).optional().or(z.literal("")),
 });
 
 export const commentSchema = z.object({

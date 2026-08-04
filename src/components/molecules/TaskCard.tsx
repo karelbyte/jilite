@@ -17,6 +17,7 @@ export interface TaskListItem {
   assignee: { name: string; image: string | null } | null;
   canDelete: boolean;
   position?: number;
+  projectName?: string;
 }
 
 export default function TaskCard({ task }: { task: TaskListItem }) {

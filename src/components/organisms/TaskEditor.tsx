@@ -10,7 +10,7 @@ import MarkdownEditor from "@/components/organisms/MarkdownEditor";
 import { PRIORITIES, PRIORITY_META, STATUSES, STATUS_META } from "@/lib/constants";
 
 interface Props {
-  task: Pick<Task, "id" | "title" | "description" | "status" | "priority" | "assigneeId" | "dueDate">;
+  task: Pick<Task, "id" | "title" | "description" | "status" | "priority" | "assigneeId" | "dueDate" | "recurrence">;
   users: { id: string; name: string }[];
 }
 
@@ -82,6 +82,17 @@ export default function TaskEditor({ task, users }: Props) {
             type="date"
             defaultValue={task.dueDate ? task.dueDate.toISOString().slice(0, 10) : ""}
           />
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="recurrence" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Repetir
+          </label>
+          <Select id="recurrence" name="recurrence" defaultValue={task.recurrence ?? ""}>
+            <option value="">No repetir</option>
+            <option value="DAILY">Diario</option>
+            <option value="WEEKLY">Semanal</option>
+            <option value="MONTHLY">Mensual</option>
+          </Select>
         </div>
       </div>
       {state?.error ? <p className="text-sm text-red-600">{state.error}</p> : null}

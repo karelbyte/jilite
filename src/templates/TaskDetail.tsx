@@ -11,6 +11,8 @@ import TaskLabels from "@/components/organisms/TaskLabels";
 import SubtaskList from "@/components/organisms/SubtaskList";
 import { MarkdownView } from "@/components/organisms/MarkdownEditor";
 import AutoRefresh from "@/components/molecules/AutoRefresh";
+import ActivityList from "@/components/molecules/ActivityList";
+import type { ActivityItem } from "@/lib/activityLabels";
 import StatusSelect from "@/components/molecules/StatusSelect";
 import { PRIORITY_META, STATUS_META } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
@@ -25,6 +27,7 @@ interface Props {
     priority: "LOW" | "MEDIUM" | "HIGH";
     assigneeId: string | null;
     dueDate: string | Date | null;
+    recurrence: "DAILY" | "WEEKLY" | "MONTHLY" | null;
     createdAt: string | Date;
     updatedAt: string | Date;
     createdBy: { name: string; image: string | null };
@@ -38,11 +41,13 @@ interface Props {
   files: Array<{ id: string; name: string; contentType: string }>;
   labels: Array<{ id: string; name: string; color: string }>;
   allLabels: Array<{ id: string; name: string; color: string }>;
-  subtasks: Array<{ id: string; title: string; done: boolean }>;
+  subtasks: Array<{ id: string; title: string; done: boolean; dueDate: string | Date | null; estimateMinutes: number | null }>;
   canManageLabels: boolean;
   users: { id: string; name: string }[];
   canEditFull: boolean;
   statusOnly: boolean;
+  isViewer: boolean;
+  activity: ActivityItem[];
 }
 
 export default function TaskDetailTemplate({
@@ -56,6 +61,8 @@ export default function TaskDetailTemplate({
   users,
   canEditFull,
   statusOnly,
+  isViewer,
+  activity,
 }: Props) {
   const status = STATUS_META[task.status];
   const priority = PRIORITY_META[task.priority];
@@ -73,6 +80,11 @@ export default function TaskDetailTemplate({
           {task.dueDate ? (
             <Badge className={new Date(task.dueDate) < new Date() && task.status !== "DONE" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"}>
               Vence: {formatDate(task.dueDate)}
+            </Badge>
+          ) : null}
+          {task.recurrence ? (
+            <Badge className="bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
+              Repite: {task.recurrence === "DAILY" ? "Diario" : task.recurrence === "WEEKLY" ? "Semanal" : "Mensual"}
             </Badge>
           ) : null}
           <a
@@ -93,7 +105,7 @@ export default function TaskDetailTemplate({
         </div>
 
         {canEditFull ? (
-          <TaskEditor
+            <TaskEditor
             task={{
               id: task.id,
               title: task.title,
@@ -102,6 +114,7 @@ export default function TaskDetailTemplate({
               priority: task.priority,
               assigneeId: task.assigneeId,
               dueDate: task.dueDate ? new Date(task.dueDate) : null,
+              recurrence: task.recurrence,
             }}
             users={users}
           />
@@ -140,7 +153,7 @@ export default function TaskDetailTemplate({
 
       <section className="mt-6">
         <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Subtareas</h2>
-        <SubtaskList taskId={task.id} subtasks={subtasks} />
+        <SubtaskList taskId={task.id} subtasks={subtasks} canEdit={!isViewer} />
       </section>
 
       <section className="mt-6">
@@ -156,7 +169,7 @@ export default function TaskDetailTemplate({
 
       <section className="mt-6">
         <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Archivos</h2>
-        <FileUploader taskId={task.id} />
+        {!isViewer ? <FileUploader taskId={task.id} /> : null}
         <div className="mt-4">
           <FileList files={files} />
         </div>
@@ -165,11 +178,20 @@ export default function TaskDetailTemplate({
       <section className="mt-6">
         <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Comentarios</h2>
         <div className="mb-5">
-<CommentForm taskId={task.id} />
-      </div>
+          {!isViewer ? <CommentForm taskId={task.id} members={users} /> : null}
+        </div>
         <AutoRefresh>
-          <CommentList comments={comments} />
+          <CommentList
+            comments={comments}
+            memberNames={users.map((u) => u.name)}
+            projectId={task.projectId}
+          />
         </AutoRefresh>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Actividad</h2>
+        <ActivityList items={activity} emptyText="Sin actividad registrada en esta tarea." />
       </section>
     </main>
   );

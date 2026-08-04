@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAuthedUser } from "@/lib/rbac";
+import { getAuthedUser, isViewerOf } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { sendCommentNotification } from "@/lib/email";
+import { sendCommentNotification, sendMentionNotification } from "@/lib/email";
 import { postWebhook } from "@/lib/notify";
 import { commentSchema } from "@/lib/validations";
+import { findMentionNames } from "@/lib/mentions";
+import { createNotification } from "@/lib/notifications";
 import type { ActionState as AdminActionState } from "@/actions/admin";
 
 export interface ActionState {
@@ -38,6 +40,10 @@ export async function createComment(_prev: ActionState, formData: FormData) {
 
   if (!task) return { error: "Tarea no encontrada" };
 
+  if (await isViewerOf(user, task.projectId)) {
+    return { error: "No tienes permisos para comentar" };
+  }
+
   if (user.role !== "ADMIN") {
     const project = await prisma.project.findUnique({ where: { id: task.projectId } });
     const isOwner = project?.createdById === user.id;
@@ -64,29 +70,72 @@ export async function createComment(_prev: ActionState, formData: FormData) {
     },
   });
 
-  const recipients = new Map<string, { email: string; name: string }>();
+  const members = await prisma.projectMember.findMany({
+    where: { projectId: task.projectId },
+    include: { user: { select: { id: true, email: true, name: true, status: true } } },
+  });
+
+  const mentionNames = findMentionNames(parsed.data.body, members.map((m) => m.user.name));
+  const mentionNameSet = new Set(mentionNames.map((n) => n.toLowerCase()));
+  const mentionedIds = new Set<string>();
+  for (const m of members) {
+    if (mentionNameSet.has(m.user.name.toLowerCase())) mentionedIds.add(m.user.id);
+  }
+
+  const recipients = new Map<string, { id: string; email: string; name: string }>();
   const add = (u: { id: string; email: string; name: string } | null) => {
     if (u && u.id !== user.id) recipients.set(u.email, u);
   };
   add(task.assignee);
   add(task.createdBy);
   task.comments.forEach((c) => add(c.author));
+  for (const m of members) {
+    if (mentionedIds.has(m.user.id) && m.user.status === "ACTIVE") add(m.user);
+  }
 
   const taskUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${taskId}`;
 
   await Promise.allSettled(
     [...recipients.values()].map((r) =>
-      sendCommentNotification(r.email, {
-        taskTitle: task.title,
-        commenterName: author.name,
-        commentBody: parsed.data.body,
-        taskUrl,
+      mentionedIds.has(r.id)
+        ? sendMentionNotification(r.email, {
+            taskTitle: task.title,
+            mentionerName: author.name,
+            commentBody: parsed.data.body,
+            taskUrl,
+          })
+        : sendCommentNotification(r.email, {
+            taskTitle: task.title,
+            commenterName: author.name,
+            commentBody: parsed.data.body,
+            taskUrl,
+          })
+    )
+  );
+
+  const mentionedNames = members
+    .filter((m) => mentionedIds.has(m.user.id))
+    .map((m) => m.user.name)
+    .join(", ");
+
+  await Promise.allSettled(
+    [...recipients.values()].map((r) =>
+      createNotification({
+        userId: r.id,
+        type: mentionedIds.has(r.id) ? "mention" : "comment",
+        title: mentionedIds.has(r.id)
+          ? `Te mencionaron en "${task.title}"`
+          : `Nuevo comentario en "${task.title}"`,
+        body: `${author.name}: ${parsed.data.body.slice(0, 200)}`,
+        taskId,
       })
     )
   );
 
   await postWebhook({
-    text: `💬 **${author.name}** comentó en "${task.title}"`,
+    text: `💬 **${author.name}** comentó en "${task.title}"${
+      mentionedNames ? ` y mencionó a: ${mentionedNames}` : ""
+    }`,
     taskUrl,
   });
 
@@ -103,6 +152,10 @@ export async function deleteFile(fileId: string): Promise<AdminActionState> {
     include: { task: { select: { projectId: true, createdById: true } } },
   });
   if (!file) return { error: "Archivo no encontrado", message: null };
+
+  if (await isViewerOf(user, file.task.projectId)) {
+    return { error: "No tienes permisos para eliminar archivos", message: null };
+  }
 
   if (user.role !== "ADMIN") {
     const project = await prisma.project.findUnique({

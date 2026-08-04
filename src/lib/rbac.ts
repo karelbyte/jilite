@@ -2,7 +2,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import type { Project, ProjectMember, Role, UserStatus } from "@/generated/prisma/client";
+import type { Project, ProjectMember, ProjectRole, Role, UserStatus } from "@/generated/prisma/client";
 
 export interface AuthedUser {
   id: string;
@@ -93,6 +93,35 @@ export async function getVisibleProjectIds(user: AuthedUser): Promise<string[]> 
     select: { id: true },
   });
   return projects.map((p) => p.id);
+}
+
+export async function getProjectRole(
+  user: AuthedUser,
+  projectId: string
+): Promise<ProjectRole | null> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { createdById: true },
+  });
+  if (!project) return null;
+  if (isAdmin(user) || isProjectOwner(user, project.createdById)) return "ADMIN";
+  const membership = await memberOf(user.id, projectId);
+  return membership?.role ?? null;
+}
+
+export async function isViewerOf(user: AuthedUser, projectId: string): Promise<boolean> {
+  return (await getProjectRole(user, projectId)) === "VIEWER";
+}
+
+export async function canEditProjectContent(user: AuthedUser, projectId: string): Promise<boolean> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { createdById: true },
+  });
+  if (!project) return false;
+  if (isAdmin(user) || isProjectOwner(user, project.createdById)) return true;
+  const membership = await memberOf(user.id, projectId);
+  return membership ? membership.role !== "VIEWER" : false;
 }
 
 export async function getAssignableUsers(projectId: string) {

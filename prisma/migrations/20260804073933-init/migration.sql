@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'PROJECT_ADMIN', 'USER');
 
@@ -9,6 +12,12 @@ CREATE TYPE "Status" AS ENUM ('TODO', 'IN_PROGRESS', 'DONE');
 
 -- CreateEnum
 CREATE TYPE "Priority" AS ENUM ('LOW', 'MEDIUM', 'HIGH');
+
+-- CreateEnum
+CREATE TYPE "ProjectRole" AS ENUM ('ADMIN', 'MEMBER', 'VIEWER');
+
+-- CreateEnum
+CREATE TYPE "Recurrence" AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -48,6 +57,7 @@ CREATE TABLE "ProjectMember" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
+    "role" "ProjectRole" NOT NULL DEFAULT 'MEMBER',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ProjectMember_pkey" PRIMARY KEY ("id")
@@ -80,6 +90,20 @@ CREATE TABLE "SavedView" (
 );
 
 -- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "body" TEXT,
+    "taskId" TEXT,
+    "readAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Task" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -91,6 +115,8 @@ CREATE TABLE "Task" (
     "createdById" TEXT NOT NULL,
     "dueDate" TIMESTAMP(3),
     "reminderSentAt" TIMESTAMP(3),
+    "recurrence" "Recurrence",
+    "lastRecurredAt" TIMESTAMP(3),
     "position" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -160,6 +186,9 @@ CREATE TABLE "Subtask" (
     "taskId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "done" BOOLEAN NOT NULL DEFAULT false,
+    "dueDate" TIMESTAMP(3),
+    "estimateMinutes" INTEGER,
+    "position" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Subtask_pkey" PRIMARY KEY ("id")
@@ -197,6 +226,9 @@ CREATE INDEX "Invitation_token_idx" ON "Invitation"("token");
 
 -- CreateIndex
 CREATE INDEX "SavedView_userId_projectId_idx" ON "SavedView"("userId", "projectId");
+
+-- CreateIndex
+CREATE INDEX "Notification_userId_readAt_idx" ON "Notification"("userId", "readAt");
 
 -- CreateIndex
 CREATE INDEX "Task_assigneeId_idx" ON "Task"("assigneeId");
@@ -245,6 +277,12 @@ ALTER TABLE "SavedView" ADD CONSTRAINT "SavedView_userId_fkey" FOREIGN KEY ("use
 
 -- AddForeignKey
 ALTER TABLE "SavedView" ADD CONSTRAINT "SavedView_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Task" ADD CONSTRAINT "Task_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireUser, getProjectAccess } from "@/lib/rbac";
+import { requireUser, getProjectAccess, isViewerOf } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import ProjectDetailTemplate from "@/templates/ProjectDetail";
 import type { Prisma, Priority, Status } from "@/generated/prisma/client";
@@ -27,9 +27,10 @@ export default async function ProjectDetailPage({
   const access = await getProjectAccess(user, id);
   if (!access.project || access.access === null) redirect("/dashboard");
   const canManage = access.access === "manage";
+  const isViewer = await isViewerOf(user, id);
 
-  const tab: "tareas" | "miembros" | "archivos" =
-    sp.tab === "miembros" || sp.tab === "archivos" ? sp.tab : "tareas";
+  const tab: "tareas" | "miembros" | "archivos" | "actividad" =
+    sp.tab === "miembros" || sp.tab === "archivos" || sp.tab === "actividad" ? sp.tab : "tareas";
 
   const page = Math.max(1, Number(sp.page ?? 1));
   const search = typeof sp.q === "string" ? sp.q.trim() : "";
@@ -95,8 +96,25 @@ export default async function ProjectDetailPage({
     orderBy: { createdAt: "desc" },
   });
 
-  const [tasks, total] = await prisma.$transaction([
-    prisma.task.findMany({
+  const [projectTaskIds, projectInvitationIds] = await Promise.all([
+    prisma.task.findMany({ where: { projectId: id }, select: { id: true } }),
+    prisma.invitation.findMany({ where: { projectId: id }, select: { id: true } }),
+  ]);
+
+  const activity = await prisma.activityLog.findMany({
+    where: {
+      OR: [
+        { entity: "task", entityId: { in: projectTaskIds.map((t) => t.id) } },
+        { entity: "project", entityId: id },
+        { entity: "invitation", entityId: { in: projectInvitationIds.map((i) => i.id) } },
+      ],
+    },
+    include: { actor: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 60,
+  });
+
+  const [tasks, total] = await prisma.$transaction([    prisma.task.findMany({
       where: taskWhere,
       include: {
         assignee: { select: { name: true, image: true } },
@@ -132,7 +150,7 @@ export default async function ProjectDetailPage({
     commentsCount: t._count.comments,
     dueDate: t.dueDate,
     assignee: t.assignee,
-    canDelete: canManage || (user.role === "USER" && t.createdById === user.id),
+    canDelete: canManage || (user.role === "USER" && !isViewer && t.createdById === user.id),
   }));
 
   const members = project.members.map((m) => ({
@@ -160,6 +178,7 @@ export default async function ProjectDetailPage({
       availableUsers={availableUsers}
       assignableUsers={assignableUsers}
       canManage={canManage}
+      canEdit={!isViewer}
       search={search}
       status={status}
       priority={priority}
@@ -171,6 +190,7 @@ export default async function ProjectDetailPage({
       totalPages={totalPages}
       tab={tab}
       projectFiles={projectFiles}
+      activity={activity}
     />
   );
 }

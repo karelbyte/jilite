@@ -4,6 +4,9 @@ import MemberManager, { type MemberItem } from "@/components/organisms/MemberMan
 import ProjectFiles, { type ProjectFile } from "@/components/organisms/ProjectFiles";
 import ProjectTabs from "@/components/molecules/ProjectTabs";
 import Avatar from "@/components/atoms/Avatar";
+import ActivityList from "@/components/molecules/ActivityList";
+import TaskCsvControls from "@/components/molecules/TaskCsvControls";
+import type { ActivityItem } from "@/lib/activityLabels";
 import { formatDate } from "@/lib/format";
 import type { TaskListItem } from "@/components/molecules/TaskCard";
 
@@ -20,6 +23,7 @@ interface Props {
   availableUsers: { id: string; name: string }[];
   assignableUsers: { id: string; name: string }[];
   canManage: boolean;
+  canEdit: boolean;
   search: string;
   status: string;
   priority: string;
@@ -29,8 +33,9 @@ interface Props {
   savedViews: { id: string; name: string; filters: unknown }[];
   page: number;
   totalPages: number;
-  tab: "tareas" | "miembros" | "archivos";
+  tab: "tareas" | "miembros" | "archivos" | "actividad";
   projectFiles: ProjectFile[];
+  activity: ActivityItem[];
 }
 
 export default function ProjectDetailTemplate({
@@ -40,6 +45,7 @@ export default function ProjectDetailTemplate({
   availableUsers,
   assignableUsers,
   canManage,
+  canEdit,
   search,
   status,
   priority,
@@ -51,6 +57,7 @@ export default function ProjectDetailTemplate({
   totalPages,
   tab,
   projectFiles,
+  activity,
 }: Props) {
   return (
     <main className="w-full flex-1 px-4 py-8 sm:px-6">
@@ -73,6 +80,11 @@ export default function ProjectDetailTemplate({
 
       {tab === "tareas" ? (
         <div className="mt-6">
+          {canEdit ? (
+            <div className="mb-3 flex justify-end">
+              <TaskCsvControls projectId={project.id} />
+            </div>
+          ) : null}
           <TaskList
             tasks={tasks}
             users={assignableUsers}
@@ -86,6 +98,7 @@ export default function ProjectDetailTemplate({
             savedViews={savedViews}
             page={page}
             totalPages={totalPages}
+            canEdit={canEdit}
           />
         </div>
       ) : null}
@@ -118,6 +131,12 @@ export default function ProjectDetailTemplate({
       {tab === "archivos" ? (
         <div className="mt-6">
           <ProjectFiles files={projectFiles} />
+        </div>
+      ) : null}
+
+      {tab === "actividad" ? (
+        <div className="mt-6">
+          <ActivityList items={activity} emptyText="Sin actividad registrada en este proyecto." />
         </div>
       ) : null}
     </main>

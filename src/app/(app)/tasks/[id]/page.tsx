@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireUser, getProjectAccess, getAssignableUsers } from "@/lib/rbac";
+import { requireUser, getProjectAccess, getAssignableUsers, isViewerOf } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import TaskDetailTemplate from "@/templates/TaskDetail";
 
@@ -25,7 +25,10 @@ export default async function TaskDetailPage({
       labels: {
         include: { label: { select: { id: true, name: true, color: true } } },
       },
-      subtasks: { select: { id: true, title: true, done: true }, orderBy: { createdAt: "asc" } },
+      subtasks: {
+        select: { id: true, title: true, done: true, dueDate: true, estimateMinutes: true, position: true },
+        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+      },
     },
   });
 
@@ -34,12 +37,13 @@ export default async function TaskDetailPage({
   const access = await getProjectAccess(user, task.projectId);
   if (!access.project || access.access === null) notFound();
   const canManage = access.access === "manage";
+  const isViewer = await isViewerOf(user, task.projectId);
 
   const isOwner = task.createdById === user.id;
   const isAssignee = task.assigneeId === user.id;
 
-  const canEditFull = canManage || isOwner;
-  const statusOnly = !canEditFull && (isOwner || isAssignee);
+  const canEditFull = canManage || (isOwner && !isViewer);
+  const statusOnly = !canEditFull && !isViewer && (isOwner || isAssignee);
 
   const users = await getAssignableUsers(task.projectId);
 
@@ -47,6 +51,13 @@ export default async function TaskDetailPage({
     where: { projectId: task.projectId },
     select: { id: true, name: true, color: true },
     orderBy: { name: "asc" },
+  });
+
+  const activity = await prisma.activityLog.findMany({
+    where: { entity: "task", entityId: id },
+    include: { actor: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
   });
 
   return (
@@ -60,6 +71,7 @@ export default async function TaskDetailPage({
         priority: task.priority,
         assigneeId: task.assigneeId,
         dueDate: task.dueDate,
+        recurrence: task.recurrence,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
         createdBy: task.createdBy,
@@ -74,6 +86,8 @@ export default async function TaskDetailPage({
       users={users}
       canEditFull={canEditFull}
       statusOnly={statusOnly}
+      isViewer={isViewer}
+      activity={activity}
     />
   );
 }

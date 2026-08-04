@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import "./globals.css";
@@ -37,10 +38,15 @@ export default function RootLayout({
     <html
       lang="es"
       data-scroll-behavior="smooth"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeScript }}
+        />
       </head>
       <body className="min-h-screen flex flex-col">
         <ThemeProvider>{children}</ThemeProvider>

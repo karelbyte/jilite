@@ -27,3 +27,19 @@ export function checkRateLimit(
 export function secondsUntil(retryAfterMs?: number): number {
   return retryAfterMs ? Math.ceil(retryAfterMs / 1000) : 0;
 }
+
+export function rateLimitResponse(retryAfterMs?: number): Response {
+  return new Response(JSON.stringify({ error: "Demasiadas peticiones. Intentá de nuevo en un momento." }), {
+    status: 429,
+    headers: {
+      "Content-Type": "application/json",
+      "Retry-After": String(secondsUntil(retryAfterMs)),
+    },
+  });
+}
+
+export function clientIp(request: Request): string {
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
