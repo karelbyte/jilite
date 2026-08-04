@@ -18,6 +18,7 @@ export default async function ProjectDetailPage({
     priority?: string;
     assignee?: string;
     label?: string;
+    tab?: string;
   }>;
 }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
@@ -26,6 +27,9 @@ export default async function ProjectDetailPage({
   const access = await getProjectAccess(user, id);
   if (!access.project || access.access === null) redirect("/dashboard");
   const canManage = access.access === "manage";
+
+  const tab: "tareas" | "miembros" | "archivos" =
+    sp.tab === "miembros" || sp.tab === "archivos" ? sp.tab : "tareas";
 
   const page = Math.max(1, Number(sp.page ?? 1));
   const search = typeof sp.q === "string" ? sp.q.trim() : "";
@@ -80,6 +84,15 @@ export default async function ProjectDetailPage({
     where: { userId: user.id, projectId: id },
     select: { id: true, name: true, filters: true },
     orderBy: { createdAt: "asc" },
+  });
+
+  const projectFiles = await prisma.file.findMany({
+    where: { task: { projectId: id } },
+    include: {
+      task: { select: { id: true, title: true } },
+      uploadedBy: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
   });
 
   const [tasks, total] = await prisma.$transaction([
@@ -156,6 +169,8 @@ export default async function ProjectDetailPage({
       savedViews={savedViews}
       page={page}
       totalPages={totalPages}
+      tab={tab}
+      projectFiles={projectFiles}
     />
   );
 }

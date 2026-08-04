@@ -1,6 +1,9 @@
 import Link from "next/link";
 import TaskList from "@/components/organisms/TaskList";
 import MemberManager, { type MemberItem } from "@/components/organisms/MemberManager";
+import ProjectFiles, { type ProjectFile } from "@/components/organisms/ProjectFiles";
+import ProjectTabs from "@/components/molecules/ProjectTabs";
+import Avatar from "@/components/atoms/Avatar";
 import { formatDate } from "@/lib/format";
 import type { TaskListItem } from "@/components/molecules/TaskCard";
 
@@ -26,6 +29,8 @@ interface Props {
   savedViews: { id: string; name: string; filters: unknown }[];
   page: number;
   totalPages: number;
+  tab: "tareas" | "miembros" | "archivos";
+  projectFiles: ProjectFile[];
 }
 
 export default function ProjectDetailTemplate({
@@ -44,6 +49,8 @@ export default function ProjectDetailTemplate({
   savedViews,
   page,
   totalPages,
+  tab,
+  projectFiles,
 }: Props) {
   return (
     <main className="w-full flex-1 px-4 py-8 sm:px-6">
@@ -62,8 +69,10 @@ export default function ProjectDetailTemplate({
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <ProjectTabs active={tab} />
+
+      {tab === "tareas" ? (
+        <div className="mt-6">
           <TaskList
             tasks={tasks}
             users={assignableUsers}
@@ -79,7 +88,10 @@ export default function ProjectDetailTemplate({
             totalPages={totalPages}
           />
         </div>
-        <div>
+      ) : null}
+
+      {tab === "miembros" ? (
+        <div className="mt-6">
           {canManage ? (
             <MemberManager
               projectId={project.id}
@@ -91,15 +103,23 @@ export default function ProjectDetailTemplate({
               <h2 className="font-medium text-gray-900 dark:text-gray-100">Miembros</h2>
               <ul className="mt-3 divide-y divide-gray-100 dark:divide-gray-800">
                 {members.map((m) => (
-                  <li key={m.userId} className="flex items-center gap-3 py-2 text-sm text-gray-700 dark:text-gray-300">
-                    {m.user.name}
+                  <li key={m.userId} className="flex items-center gap-3 py-2">
+                    <Avatar name={m.user.name} src={m.user.image} size="sm" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{m.user.name}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{m.user.email}</span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
         </div>
-      </div>
+      ) : null}
+
+      {tab === "archivos" ? (
+        <div className="mt-6">
+          <ProjectFiles files={projectFiles} />
+        </div>
+      ) : null}
     </main>
   );
 }
