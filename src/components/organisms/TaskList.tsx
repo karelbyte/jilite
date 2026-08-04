@@ -2,16 +2,16 @@
 
 import { useState, useActionState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import Button from "@/components/atoms/Button";
 import Input from "@/components/atoms/Input";
 import Select from "@/components/atoms/Select";
-import Modal from "@/components/molecules/Modal";
 import Pagination from "@/components/molecules/Pagination";
+import Modal from "@/components/molecules/Modal";
 import ConfirmDialog from "@/components/molecules/ConfirmDialog";
 import TaskCard, { type TaskListItem } from "@/components/molecules/TaskCard";
 import EmptyState from "@/components/molecules/EmptyState";
 import KanbanBoard from "@/components/organisms/KanbanBoard";
-import TaskForm from "@/components/organisms/TaskForm";
 import { bulkUpdateTasks, bulkDeleteTasks } from "@/actions/task";
 import { saveViewAction } from "@/actions/view";
 import { STATUSES, STATUS_META } from "@/lib/constants";
@@ -47,7 +47,6 @@ export default function TaskList({
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
   const [view, setView] = useState<"list" | "board">("list");
   const [query, setQuery] = useState(search);
   const [selected, setSelected] = useState<string[]>([]);
@@ -165,8 +164,22 @@ export default function TaskList({
               </Select>
             </div>
           ) : null}
-          <Button type="submit" variant="secondary">
-            Buscar
+          <Button
+            type="submit"
+            variant="secondary"
+            aria-label="Buscar tareas"
+            title="Buscar tareas"
+            className="self-end px-3"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+              <path
+                d="M21 21l-4.35-4.35M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </Button>
           <div className="flex items-center gap-2">
             {savedViews.length > 0 ? (
@@ -195,16 +208,27 @@ export default function TaskList({
               type="button"
               variant="secondary"
               onClick={() => setShowSaveView((x) => !x)}
+              aria-label="Guardar vista"
+              title={showSaveView ? "Cancelar" : "Guardar vista"}
+              className="self-end px-3"
             >
-              {showSaveView ? "Cancelar" : "Guardar vista"}
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+                <path
+                  d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </Button>
           </div>
         </form>
-        {showSaveView ? (
+        <Modal open={showSaveView} onClose={() => setShowSaveView(false)} title="Guardar vista">
           <form
             action={viewAction}
             onSubmit={() => setTimeout(() => setShowSaveView(false), 0)}
-            className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800"
+            className="space-y-4"
           >
             <input type="hidden" name="projectId" value={projectId} />
             <input
@@ -219,7 +243,7 @@ export default function TaskList({
               })}
             />
             <div className="space-y-1">
-              <label htmlFor="view-name" className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+              <label htmlFor="view-name" className="block text-sm font-medium text-gray-500 dark:text-gray-400">
                 Nombre de la vista
               </label>
               <Input
@@ -228,18 +252,26 @@ export default function TaskList({
                 value={viewName}
                 onChange={(e) => setViewName(e.target.value)}
                 required
+                autoFocus
                 placeholder="Ej: Sprint actual"
                 maxLength={50}
               />
             </div>
-            <Button type="submit" size="sm" disabled={!viewName.trim()}>
-              Guardar
-            </Button>
             {viewState?.error ? <p className="text-sm text-red-600">{viewState.error}</p> : null}
             {viewState?.message ? <p className="text-sm text-green-700">{viewState.message}</p> : null}
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="secondary" size="sm" onClick={() => setShowSaveView(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" size="sm" disabled={!viewName.trim()}>
+                Guardar
+              </Button>
+            </div>
           </form>
-        ) : null}
-        <Button onClick={() => setOpen(true)}>Nueva tarea</Button>
+        </Modal>
+        <Link href={`/tasks/new?project=${encodeURIComponent(projectId)}`} className="inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+          Nueva tarea
+        </Link>
       </div>
 
       <div className="flex gap-2">
@@ -262,14 +294,6 @@ export default function TaskList({
           Tablero
         </button>
       </div>
-
-      <Modal open={open} onClose={() => setOpen(false)} title="Nueva tarea">
-        <TaskForm
-          projectId={projectId}
-          users={users}
-          onSuccess={() => setOpen(false)}
-        />
-      </Modal>
 
       {tasks.length === 0 ? (
         <EmptyState

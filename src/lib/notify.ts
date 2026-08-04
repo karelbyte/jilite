@@ -7,9 +7,10 @@ export interface WebhookMessage {
 
 const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL;
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK_URL;
+const TEAMS_WEBHOOK = process.env.TEAMS_WEBHOOK_URL;
 
 export async function postWebhook(msg: WebhookMessage): Promise<void> {
-  await Promise.allSettled([postSlack(msg), postDiscord(msg)]);
+  await Promise.allSettled([postSlack(msg), postDiscord(msg), postTeams(msg)]);
 }
 
 async function postSlack(msg: WebhookMessage) {
@@ -30,6 +31,27 @@ async function postDiscord(msg: WebhookMessage) {
     content: msg.taskUrl ? `${msg.text}\n${msg.taskUrl}` : msg.text,
   };
   await fetch(DISCORD_WEBHOOK, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+async function postTeams(msg: WebhookMessage) {
+  if (!TEAMS_WEBHOOK) return;
+  const payload = {
+    "@type": "MessageCard",
+    "@context": "http://schema.org/extensions",
+    summary: msg.text,
+    themeColor: "2563EB",
+    sections: [
+      {
+        activityTitle: "Jilite",
+        text: msg.taskUrl ? `${msg.text}\n\n[Ver la tarea](${msg.taskUrl})` : msg.text,
+      },
+    ],
+  };
+  await fetch(TEAMS_WEBHOOK, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

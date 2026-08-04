@@ -9,6 +9,7 @@ import FileUploader from "@/components/organisms/FileUploader";
 import TaskEditor from "@/components/organisms/TaskEditor";
 import TaskLabels from "@/components/organisms/TaskLabels";
 import SubtaskList from "@/components/organisms/SubtaskList";
+import { MarkdownView } from "@/components/organisms/MarkdownEditor";
 import AutoRefresh from "@/components/molecules/AutoRefresh";
 import StatusSelect from "@/components/molecules/StatusSelect";
 import { PRIORITY_META, STATUS_META } from "@/lib/constants";
@@ -113,7 +114,9 @@ export default function TaskDetailTemplate({
             ) : null}
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{task.title}</h1>
             {task.description ? (
-              <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">{task.description}</p>
+              <div className="mt-2">
+                <MarkdownView source={task.description} />
+              </div>
             ) : null}
           </div>
         )}

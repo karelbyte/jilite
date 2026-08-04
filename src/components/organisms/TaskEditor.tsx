@@ -6,7 +6,7 @@ import type { Task } from "@/generated/prisma/client";
 import Button from "@/components/atoms/Button";
 import Input from "@/components/atoms/Input";
 import Select from "@/components/atoms/Select";
-import Textarea from "@/components/atoms/Textarea";
+import MarkdownEditor from "@/components/organisms/MarkdownEditor";
 import { PRIORITIES, PRIORITY_META, STATUSES, STATUS_META } from "@/lib/constants";
 
 interface Props {
@@ -30,7 +30,7 @@ export default function TaskEditor({ task, users }: Props) {
         <label htmlFor="description" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Descripción
         </label>
-        <Textarea id="description" name="description" rows={5} maxLength={5000} defaultValue={task.description ?? ""} />
+        <MarkdownEditor id="description" name="description" defaultValue={task.description ?? ""} />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="space-y-1">

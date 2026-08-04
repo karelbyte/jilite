@@ -11,6 +11,7 @@ import type { Priority, Status } from "@/generated/prisma/client";
 
 export interface ActionState {
   error: string | null;
+  id?: string | null;
 }
 
 async function canCreateTaskIn(userId: string, role: string, project: { id: string; createdById: string }) {
@@ -104,7 +105,7 @@ async function notifyTaskRecipients(input: NotifyTaskRecipientsInput) {
   );
 }
 
-export async function createTask(_prev: ActionState, formData: FormData) {
+export async function createTask(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await getAuthedUser();
   if (!user) return { error: "No autorizado" };
 
@@ -164,7 +165,7 @@ export async function createTask(_prev: ActionState, formData: FormData) {
     detail: title,
     actorId: user.id,
   });
-  return { error: null };
+  return { error: null, id: created.id };
 }
 
 export async function updateTask(_prev: ActionState, formData: FormData) {
