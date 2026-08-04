@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
+import { postWebhook } from "@/lib/notify";
 import type { ActionState } from "@/actions/admin";
 
 async function canEditTask(userId: string, role: string, taskId: string) {
@@ -28,6 +29,11 @@ export async function createSubtask(formData: FormData): Promise<void> {
 
   await prisma.subtask.create({ data: { taskId, title } });
   revalidatePath(`/tasks/${taskId}`);
+
+  await postWebhook({
+    text: `📋 **${user.name}** añadió la subtarea "${title}" a "${task.title}"`,
+    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${taskId}`,
+  });
 }
 
 export async function toggleSubtask(formData: FormData): Promise<void> {
@@ -44,6 +50,13 @@ export async function toggleSubtask(formData: FormData): Promise<void> {
     data: { done: !subtask.done },
   });
   revalidatePath(`/tasks/${subtask.taskId}`);
+
+  await postWebhook({
+    text: `${
+      subtask.done ? "↩️" : "✅"
+    } **${user.name}** ${subtask.done ? "marcó como pendiente" : "completó"} la subtarea "${subtask.title}" en "${task.title}"`,
+    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${subtask.taskId}`,
+  });
 }
 
 export async function deleteSubtask(
@@ -60,5 +73,9 @@ export async function deleteSubtask(
 
   await prisma.subtask.delete({ where: { id: subtaskId } });
   revalidatePath(`/tasks/${subtask.taskId}`);
+  await postWebhook({
+    text: `🗑️ **${user.name}** eliminó la subtarea "${subtask.title}" de "${task.title}"`,
+    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${subtask.taskId}`,
+  });
   return { error: null, message: "Subtarea eliminada" };
 }

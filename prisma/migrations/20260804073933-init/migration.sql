@@ -68,6 +68,18 @@ CREATE TABLE "Invitation" (
 );
 
 -- CreateTable
+CREATE TABLE "SavedView" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "filters" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SavedView_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Task" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -79,6 +91,7 @@ CREATE TABLE "Task" (
     "createdById" TEXT NOT NULL,
     "dueDate" TIMESTAMP(3),
     "reminderSentAt" TIMESTAMP(3),
+    "position" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -183,6 +196,9 @@ CREATE INDEX "Invitation_email_idx" ON "Invitation"("email");
 CREATE INDEX "Invitation_token_idx" ON "Invitation"("token");
 
 -- CreateIndex
+CREATE INDEX "SavedView_userId_projectId_idx" ON "SavedView"("userId", "projectId");
+
+-- CreateIndex
 CREATE INDEX "Task_assigneeId_idx" ON "Task"("assigneeId");
 
 -- CreateIndex
@@ -223,6 +239,12 @@ ALTER TABLE "ProjectMember" ADD CONSTRAINT "ProjectMember_userId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "Invitation" ADD CONSTRAINT "Invitation_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SavedView" ADD CONSTRAINT "SavedView_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SavedView" ADD CONSTRAINT "SavedView_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Task" ADD CONSTRAINT "Task_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;

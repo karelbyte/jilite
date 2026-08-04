@@ -13,6 +13,7 @@ import EmptyState from "@/components/molecules/EmptyState";
 import KanbanBoard from "@/components/organisms/KanbanBoard";
 import TaskForm from "@/components/organisms/TaskForm";
 import { bulkUpdateTasks, bulkDeleteTasks } from "@/actions/task";
+import { saveViewAction } from "@/actions/view";
 import { STATUSES, STATUS_META } from "@/lib/constants";
 
 interface Props {
@@ -21,11 +22,29 @@ interface Props {
   projectId: string;
   search: string;
   status: string;
+  priority?: string;
+  assignee?: string;
+  label?: string;
+  projectLabels?: { id: string; name: string; color: string }[];
+  savedViews?: { id: string; name: string; filters: unknown }[];
   page: number;
   totalPages: number;
 }
 
-export default function TaskList({ tasks, users, projectId, search, status, page, totalPages }: Props) {
+export default function TaskList({
+  tasks,
+  users,
+  projectId,
+  search,
+  status,
+  priority = "ALL",
+  assignee = "",
+  label = "",
+  projectLabels = [],
+  savedViews = [],
+  page,
+  totalPages,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -34,11 +53,18 @@ export default function TaskList({ tasks, users, projectId, search, status, page
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkStatus, bulkAction] = useActionState(bulkUpdateTasks, { error: null });
   const [deleteStatus, deleteAction, deletePending] = useActionState(bulkDeleteTasks, { error: null });
+  const [viewState, viewAction] = useActionState(saveViewAction, { error: null, message: null });
+  const [viewName, setViewName] = useState("");
+  const [showSaveView, setShowSaveView] = useState(false);
 
-  const apply = (q: string, s: string) => {
+  const apply = (filters: { q?: string; s?: string; p?: string; a?: string; l?: string }) => {
     const params = new URLSearchParams();
+    const q = filters.q ?? query;
     if (q.trim()) params.set("q", q.trim());
-    if (s && s !== "ALL") params.set("status", s);
+    if (filters.s && filters.s !== "ALL") params.set("status", filters.s);
+    if (filters.p && filters.p !== "ALL") params.set("priority", filters.p);
+    if (filters.a) params.set("assignee", filters.a);
+    if (filters.l) params.set("label", filters.l);
     params.set("page", "1");
     router.push(`${pathname}?${params.toString()}`);
   };
@@ -47,34 +73,172 @@ export default function TaskList({ tasks, users, projectId, search, status, page
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <form
-          className="flex flex-1 flex-wrap items-center gap-3"
+          className="flex flex-1 flex-wrap items-end gap-3"
           onSubmit={(e) => {
             e.preventDefault();
-            apply(query, status);
+            apply({ q: query, s: status, p: priority, a: assignee, l: label });
           }}
         >
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar tareas…"
-            className="max-w-xs"
-          />
-          <Select
-            value={status}
-            onChange={(e) => apply(query, e.target.value)}
-            className="max-w-[180px]"
-          >
-            <option value="ALL">Todos los estados</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_META[s].label}
-              </option>
-            ))}
-          </Select>
+          <div className="space-y-1">
+            <label htmlFor="tl-q" className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+              Buscar
+            </label>
+            <Input
+              id="tl-q"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Título o descripción…"
+              className="max-w-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="tl-status" className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+              Estado
+            </label>
+            <Select
+              id="tl-status"
+              value={status}
+              onChange={(e) => apply({ s: e.target.value, q: query, p: priority, a: assignee, l: label })}
+              className="max-w-[160px]"
+            >
+              <option value="ALL">Todos</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {STATUS_META[s].label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="tl-priority" className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+              Prioridad
+            </label>
+            <Select
+              id="tl-priority"
+              value={priority}
+              onChange={(e) => apply({ p: e.target.value, q: query, s: status, a: assignee, l: label })}
+              className="max-w-[150px]"
+            >
+              <option value="ALL">Todas</option>
+              <option value="LOW">Baja</option>
+              <option value="MEDIUM">Media</option>
+              <option value="HIGH">Alta</option>
+            </Select>
+          </div>
+          {users.length > 0 ? (
+            <div className="space-y-1">
+              <label htmlFor="tl-assignee" className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+                Asignado
+              </label>
+              <Select
+                id="tl-assignee"
+                value={assignee}
+                onChange={(e) => apply({ a: e.target.value, q: query, s: status, p: priority, l: label })}
+                className="max-w-[180px]"
+              >
+                <option value="">Todos</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ) : null}
+          {projectLabels.length > 0 ? (
+            <div className="space-y-1">
+              <label htmlFor="tl-label" className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+                Etiqueta
+              </label>
+              <Select
+                id="tl-label"
+                value={label}
+                onChange={(e) => apply({ l: e.target.value, q: query, s: status, p: priority, a: assignee })}
+                className="max-w-[180px]"
+              >
+                <option value="">Todas</option>
+                {projectLabels.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ) : null}
           <Button type="submit" variant="secondary">
             Buscar
           </Button>
+          <div className="flex items-center gap-2">
+            {savedViews.length > 0 ? (
+              <Select
+                value=""
+                onChange={(e) => {
+                  const v = savedViews.find((s) => s.id === e.target.value);
+                  if (!v) return;
+                  const f = (v.filters ?? {}) as Record<string, string>;
+                  apply({ q: f.q ?? "", s: f.s ?? "ALL", p: f.p ?? "ALL", a: f.a ?? "", l: f.l ?? "" });
+                }}
+                className="max-w-[160px]"
+                aria-label="Vistas guardadas"
+              >
+                <option value="" disabled>
+                  Vistas guardadas
+                </option>
+                {savedViews.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </Select>
+            ) : null}
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowSaveView((x) => !x)}
+            >
+              {showSaveView ? "Cancelar" : "Guardar vista"}
+            </Button>
+          </div>
         </form>
+        {showSaveView ? (
+          <form
+            action={viewAction}
+            onSubmit={() => setTimeout(() => setShowSaveView(false), 0)}
+            className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800"
+          >
+            <input type="hidden" name="projectId" value={projectId} />
+            <input
+              type="hidden"
+              name="filters"
+              value={JSON.stringify({
+                q: search,
+                s: status,
+                p: priority,
+                a: assignee,
+                l: label,
+              })}
+            />
+            <div className="space-y-1">
+              <label htmlFor="view-name" className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+                Nombre de la vista
+              </label>
+              <Input
+                id="view-name"
+                name="name"
+                value={viewName}
+                onChange={(e) => setViewName(e.target.value)}
+                required
+                placeholder="Ej: Sprint actual"
+                maxLength={50}
+              />
+            </div>
+            <Button type="submit" size="sm" disabled={!viewName.trim()}>
+              Guardar
+            </Button>
+            {viewState?.error ? <p className="text-sm text-red-600">{viewState.error}</p> : null}
+            {viewState?.message ? <p className="text-sm text-green-700">{viewState.message}</p> : null}
+          </form>
+        ) : null}
         <Button onClick={() => setOpen(true)}>Nueva tarea</Button>
       </div>
 

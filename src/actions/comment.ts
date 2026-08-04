@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { sendCommentNotification } from "@/lib/email";
+import { postWebhook } from "@/lib/notify";
 import { commentSchema } from "@/lib/validations";
 import type { ActionState as AdminActionState } from "@/actions/admin";
 
@@ -83,6 +84,11 @@ export async function createComment(_prev: ActionState, formData: FormData) {
       })
     )
   );
+
+  await postWebhook({
+    text: `💬 **${author.name}** comentó en "${task.title}"`,
+    taskUrl,
+  });
 
   revalidatePath(`/tasks/${taskId}`);
   return { error: null };

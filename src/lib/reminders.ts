@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { sendTaskDueSoonEmail, sendTaskOverdueEmail } from "@/lib/email";
+import { postWebhook } from "@/lib/notify";
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const defaultWindowHours = 24;
@@ -70,6 +71,11 @@ export async function sendDueDateReminders(opts?: { windowHours?: number }): Pro
         )
       );
 
+      await postWebhook({
+        text: `⏰ Vence pronto: "${task.title}" (${dueInHours}h) en "${task.project?.name ?? "el proyecto"}"`,
+        taskUrl,
+      });
+
       await prisma.task.update({
         where: { id: task.id },
         data: { reminderSentAt: new Date() },
@@ -131,6 +137,11 @@ async function sendOverdueReminders(): Promise<number> {
           })
         )
       );
+
+      await postWebhook({
+        text: `🔴 Vencida: "${task.title}" en "${task.project?.name ?? "el proyecto"}"`,
+        taskUrl,
+      });
 
       await prisma.task.update({
         where: { id: task.id },

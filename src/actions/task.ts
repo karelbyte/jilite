@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { sendTaskAssignedEmail, sendTaskUpdatedEmail, TaskFieldChange } from "@/lib/email";
+import { postWebhook } from "@/lib/notify";
 import { logActivity } from "@/lib/activity";
 import { statusSchema, prioritySchema, taskSchema } from "@/lib/validations";
 import type { Priority, Status } from "@/generated/prisma/client";
@@ -152,6 +153,10 @@ export async function createTask(_prev: ActionState, formData: FormData) {
 
   revalidatePath(`/projects/${projectId}`);
   await notifyAssignee(assigneeId, project.name, created.id, title);
+  await postWebhook({
+    text: `📝 **${user.name ?? user.email}** creó la tarea "${title}" en "${project.name}"`,
+    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${created.id}`,
+  });
   await logActivity({
     action: "task.created",
     entity: "task",
@@ -283,6 +288,11 @@ export async function updateTask(_prev: ActionState, formData: FormData) {
     assigneeId: assigneeId || null,
   });
 
+  await postWebhook({
+    text: `✏️ **${user.name ?? user.email}** actualizó "${title}" (${changes.map((c) => c.label).join(", ")}${changes.length === 0 ? "sin cambios" : ""})`,
+    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${id}`,
+  });
+
   await logActivity({
     action: "task.updated",
     entity: "task",
@@ -359,6 +369,11 @@ export async function updateTaskStatus(_prev: ActionState, formData: FormData) {
     projectId: task.projectId,
     creatorId: task.createdById,
     assigneeId: null,
+  });
+
+  await postWebhook({
+    text: `🔀 **${user.name ?? user.email}** movió "${task.title}" a ${parsed.data}`,
+    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${id}`,
   });
 
   return { error: null };
@@ -478,7 +493,7 @@ export async function deleteTask(id: string) {
   });
 }
 
-export async function moveTask(id: string, status: string): Promise<ActionState> {
+export async function moveTask(id: string, status: string, position?: number): Promise<ActionState> {
   const user = await getAuthedUser();
   if (!user) return { error: "No autorizado" };
 
@@ -498,6 +513,10 @@ export async function moveTask(id: string, status: string): Promise<ActionState>
 
   await prisma.task.update({ where: { id }, data: { status: parsed.data } });
 
+  if (typeof position === "number" && position >= 0) {
+    await normalizePositions(task.projectId, parsed.data, id, position);
+  }
+
   revalidatePath(`/projects/${task.projectId}`);
   revalidatePath(`/tasks/${id}`);
   await logActivity({
@@ -508,4 +527,19 @@ export async function moveTask(id: string, status: string): Promise<ActionState>
     actorId: user.id,
   });
   return { error: null };
+}
+
+async function normalizePositions(projectId: string, status: Status, movedId: string, targetIndex: number) {
+  const siblings = await prisma.task.findMany({
+    where: { projectId, status },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    select: { id: true },
+  });
+  const without = siblings.filter((s) => s.id !== movedId);
+  const clamped = Math.max(0, Math.min(targetIndex, without.length));
+  without.splice(clamped, 0, { id: movedId });
+
+  await Promise.all(
+    without.map((s, i) => prisma.task.update({ where: { id: s.id }, data: { position: i } }))
+  );
 }

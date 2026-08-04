@@ -16,6 +16,7 @@ export interface TaskListItem {
   dueDate: Date | string | null;
   assignee: { name: string; image: string | null } | null;
   canDelete: boolean;
+  position?: number;
 }
 
 export default function TaskCard({ task }: { task: TaskListItem }) {

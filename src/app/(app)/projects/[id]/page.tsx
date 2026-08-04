@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requireUser, getProjectAccess } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import ProjectDetailTemplate from "@/templates/ProjectDetail";
-import type { Prisma, Status } from "@/generated/prisma/client";
+import type { Prisma, Priority, Status } from "@/generated/prisma/client";
 
 const PER_PAGE = 12;
 
@@ -11,7 +11,14 @@ export default async function ProjectDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string; q?: string; status?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    status?: string;
+    priority?: string;
+    assignee?: string;
+    label?: string;
+  }>;
 }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const user = await requireUser();
@@ -26,6 +33,12 @@ export default async function ProjectDetailPage({
     sp.status === "TODO" || sp.status === "IN_PROGRESS" || sp.status === "DONE"
       ? sp.status
       : "ALL";
+  const priority: Priority | "ALL" =
+    sp.priority === "LOW" || sp.priority === "MEDIUM" || sp.priority === "HIGH"
+      ? sp.priority
+      : "ALL";
+  const assignee = typeof sp.assignee === "string" ? sp.assignee.trim() : "";
+  const label = typeof sp.label === "string" ? sp.label.trim() : "";
 
   const project = await prisma.project.findUnique({
     where: { id },
@@ -44,6 +57,9 @@ export default async function ProjectDetailPage({
   const taskWhere: Prisma.TaskWhereInput = {
     projectId: id,
     ...(status !== "ALL" ? { status } : {}),
+    ...(priority !== "ALL" ? { priority } : {}),
+    ...(assignee ? { assigneeId: assignee } : {}),
+    ...(label ? { labels: { some: { labelId: label } } } : {}),
     ...(search
       ? {
           OR: [
@@ -54,6 +70,18 @@ export default async function ProjectDetailPage({
       : {}),
   };
 
+  const projectLabels = await prisma.label.findMany({
+    where: { projectId: id },
+    select: { id: true, name: true, color: true },
+    orderBy: { name: "asc" },
+  });
+
+  const savedViews = await prisma.savedView.findMany({
+    where: { userId: user.id, projectId: id },
+    select: { id: true, name: true, filters: true },
+    orderBy: { createdAt: "asc" },
+  });
+
   const [tasks, total] = await prisma.$transaction([
     prisma.task.findMany({
       where: taskWhere,
@@ -61,7 +89,7 @@ export default async function ProjectDetailPage({
         assignee: { select: { name: true, image: true } },
         _count: { select: { comments: true } },
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: [{ position: "asc" }, { updatedAt: "desc" }],
       skip: (page - 1) * PER_PAGE,
       take: PER_PAGE,
     }),
@@ -121,6 +149,11 @@ export default async function ProjectDetailPage({
       canManage={canManage}
       search={search}
       status={status}
+      priority={priority}
+      assignee={assignee}
+      label={label}
+      projectLabels={projectLabels}
+      savedViews={savedViews}
       page={page}
       totalPages={totalPages}
     />

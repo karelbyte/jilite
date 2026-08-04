@@ -1,6 +1,6 @@
 import "server-only";
 import { mkdir, writeFile } from "fs/promises";
-import { join } from "path";
+import { join, normalize } from "path";
 import { randomUUID } from "crypto";
 
 export const uploadDir =
@@ -23,7 +23,7 @@ export async function saveUpload(data: Buffer, originalName: string): Promise<st
 export function resolveFilePath(filename: string): string {
   const base = join(uploadDir, filename);
   if (process.env.NODE_ENV === "test") return base;
-  if (!base.startsWith(uploadDir)) throw new Error("Invalid file path");
+  if (!base.startsWith(normalize(uploadDir))) throw new Error("Invalid file path");
   return base;
 }
 

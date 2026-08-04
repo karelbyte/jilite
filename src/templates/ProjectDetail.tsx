@@ -19,6 +19,11 @@ interface Props {
   canManage: boolean;
   search: string;
   status: string;
+  priority: string;
+  assignee: string;
+  label: string;
+  projectLabels: { id: string; name: string; color: string }[];
+  savedViews: { id: string; name: string; filters: unknown }[];
   page: number;
   totalPages: number;
 }
@@ -32,6 +37,11 @@ export default function ProjectDetailTemplate({
   canManage,
   search,
   status,
+  priority,
+  assignee,
+  label,
+  projectLabels,
+  savedViews,
   page,
   totalPages,
 }: Props) {
@@ -60,6 +70,11 @@ export default function ProjectDetailTemplate({
             projectId={project.id}
             search={search}
             status={status}
+            priority={priority}
+            assignee={assignee}
+            label={label}
+            projectLabels={projectLabels}
+            savedViews={savedViews}
             page={page}
             totalPages={totalPages}
           />

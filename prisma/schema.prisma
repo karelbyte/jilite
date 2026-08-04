@@ -53,6 +53,7 @@ model User {
   projects                 Project[]       @relation("ProjectCreator")
   memberships              ProjectMember[]
   activities               ActivityLog[]
+  savedViews               SavedView[]
 }
 
 model Project {
@@ -65,6 +66,7 @@ model Project {
   tasks       Task[]
   labels      Label[]
   invitations Invitation[]
+  savedViews  SavedView[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
@@ -99,6 +101,19 @@ model Invitation {
   @@index([token])
 }
 
+model SavedView {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  filters   Json
+  createdAt DateTime @default(now())
+
+  @@index([userId, projectId])
+}
+
 model Task {
   id             String      @id @default(cuid())
   title          String
@@ -113,6 +128,7 @@ model Task {
   createdBy      User        @relation("Creator", fields: [createdById], references: [id], onDelete: Cascade)
   dueDate        DateTime?
   reminderSentAt DateTime?
+  position       Int         @default(0)
   subtasks       Subtask[]
   files          File[]
   comments       Comment[]
