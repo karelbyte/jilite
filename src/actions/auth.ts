@@ -155,6 +155,18 @@ export async function verifyEmailAction(token: string): Promise<{ ok: boolean; m
     },
   });
 
+  const pendingInvites = await prisma.invitation.findMany({
+    where: { email: user.email, accepted: false, expiresAt: { gt: new Date() } },
+  });
+  for (const invite of pendingInvites) {
+    await prisma.projectMember.upsert({
+      where: { projectId_userId: { projectId: invite.projectId, userId: user.id } },
+      create: { projectId: invite.projectId, userId: user.id },
+      update: {},
+    });
+    await prisma.invitation.update({ where: { id: invite.id }, data: { accepted: true } });
+  }
+
   return { ok: true, message: "¡Correo verificado! Ya puedes iniciar sesión." };
 }
 

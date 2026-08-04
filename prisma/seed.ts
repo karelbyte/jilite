@@ -141,6 +141,32 @@ async function main() {
     },
   });
 
+  await prisma.task.create({
+    data: {
+      title: "Configurar el CI de Railway",
+      description: "Agregar variables de entorno y el volumen de uploads.",
+      status: "IN_PROGRESS",
+      priority: "HIGH",
+      projectId: web.id,
+      assigneeId: luis.id,
+      createdById: carla.id,
+      dueDate: new Date(Date.now() + 2 * 60 * 60 * 1000),
+    },
+  });
+
+  await prisma.task.create({
+    data: {
+      title: "Correr backups de BD",
+      description: "Automatizar dumps de la base.",
+      status: "TODO",
+      priority: "MEDIUM",
+      projectId: web.id,
+      assigneeId: ana.id,
+      createdById: luis.id,
+      dueDate: new Date(Date.now() - 12 * 60 * 60 * 1000),
+    },
+  });
+
   await prisma.comment.create({
     data: {
       taskId: t1.id,

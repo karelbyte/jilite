@@ -246,3 +246,139 @@ export async function sendTaskUpdatedEmail(to: string, data: TaskUpdatedEmail) {
     html,
   });
 }
+
+interface TaskDueSoonEmail {
+  name: string;
+  taskTitle: string;
+  projectName: string;
+  dueDate: Date;
+  dueInHours: number;
+  labels: { id: string; name: string; color: string }[];
+  taskUrl: string;
+}
+
+export async function sendTaskDueSoonEmail(to: string, data: TaskDueSoonEmail) {
+  const from = process.env.RESEND_FROM ?? "Jilite <onboarding@resend.dev>";
+
+  const labelChips =
+    data.labels.length > 0
+      ? `<div style="margin:12px 0; display:flex; gap:6px; flex-wrap:wrap;">
+          ${data.labels
+            .map(
+              (l) =>
+                `<span style="background:${colorHex(l.color)}; color:#1e293b; font-size:12px; padding:2px 8px; border-radius:999px;">${esc(l.name)}</span>`
+            )
+            .join("")}
+        </div>`
+      : "";
+
+  const html = `
+    <div style="font-family: system-ui, sans-serif; background:#eff6ff; padding:32px;">
+      <div style="max-width:560px; margin:0 auto; background:#ffffff; border-radius:12px; padding:32px;">
+        <h2 style="color:#1e40af; margin:0 0 8px;">Recordatorio de vencimiento, ${esc(data.name)}</h2>
+        <p style="color:#374151; margin:0 0 8px;">
+          La tarea <strong>${esc(data.taskTitle)}</strong> (${esc(data.projectName)}) vence en <strong>${data.dueInHours} hora(s)</strong>,
+          el ${esc(formatDate(data.dueDate))}.
+        </p>
+        ${labelChips}
+        <a href="${esc(data.taskUrl)}" style="display:inline-block; margin-top:16px; background:#2563eb; color:#ffffff; text-decoration:none; padding:12px 20px; border-radius:8px; font-weight:600;">
+          Ver la tarea
+        </a>
+        <p style="color:#9ca3af; margin:24px 0 0; font-size:12px;">
+          No contestes a este correo; las respuestas no se revisan.
+        </p>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from,
+    to,
+    subject: `Recordatorio: "${data.taskTitle}" vence en ${data.dueInHours}h`,
+    html,
+  });
+}
+
+interface TaskOverdueEmail {
+  name: string;
+  taskTitle: string;
+  projectName: string;
+  dueDate: Date;
+  taskUrl: string;
+}
+
+export async function sendTaskOverdueEmail(to: string, data: TaskOverdueEmail) {
+  const from = process.env.RESEND_FROM ?? "Jilite <onboarding@resend.dev>";
+
+  const html = `
+    <div style="font-family: system-ui, sans-serif; background:#fffbeb; padding:32px;">
+      <div style="max-width:560px; margin:0 auto; background:#ffffff; border-radius:12px; padding:32px;">
+        <h2 style="color:#92400e; margin:0 0 8px;">Tarea vencida, ${esc(data.name)}</h2>
+        <p style="color:#374151; margin:0 0 8px;">
+          La tarea <strong>${esc(data.taskTitle)}</strong> (${esc(data.projectName)}) venció el ${esc(formatDate(data.dueDate))} y sigue pendiente.
+        </p>
+        <a href="${esc(data.taskUrl)}" style="display:inline-block; margin-top:16px; background:#f59e0b; color:#ffffff; text-decoration:none; padding:12px 20px; border-radius:8px; font-weight:600;">
+          Ver la tarea
+        </a>
+        <p style="color:#9ca3af; margin:24px 0 0; font-size:12px;">
+          No contestes a este correo; las respuestas no se revisan.
+        </p>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from,
+    to,
+    subject: `Vencida: "${data.taskTitle}"`,
+    html,
+  });
+}
+
+interface InvitationEmail {
+  name: string;
+  inviterName: string;
+  projectName: string;
+  inviteUrl: string;
+}
+
+export async function sendInvitationEmail(to: string, data: InvitationEmail) {
+  const from = process.env.RESEND_FROM ?? "Jilite <onboarding@resend.dev>";
+
+  const html = `
+    <div style="font-family: system-ui, sans-serif; background:#eff6ff; padding:32px;">
+      <div style="max-width:560px; margin:0 auto; background:#ffffff; border-radius:12px; padding:32px;">
+        <h2 style="color:#1e40af; margin:0 0 8px;">¡${esc(data.inviterName)} te invitó a un proyecto!</h2>
+        <p style="color:#374151; margin:0 0 8px;">
+          <strong>${esc(data.inviterName)}</strong> te invitó a unirte a
+          <strong>${esc(data.projectName)}</strong> en Jilite.
+        </p>
+        <p style="color:#374151; margin:0 0 16px;">
+          El enlace es válido por 7 días.
+        </p>
+        <a href="${esc(data.inviteUrl)}" style="display:inline-block; background:#2563eb; color:#ffffff; text-decoration:none; padding:12px 20px; border-radius:8px; font-weight:600;">
+          Aceptar invitación
+        </a>
+        <p style="color:#9ca3af; margin:24px 0 0; font-size:12px;">
+          No contestes a este correo; las respuestas no se revisan.
+        </p>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from,
+    to,
+    subject: `Invitación a "${data.projectName}" en Jilite`,
+    html,
+  });
+}
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString("es", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function colorHex(hex?: string): string {
+  if (!hex) return "#94a3b8";
+  return hex.startsWith("#") ? hex : `#${hex}`;
+}

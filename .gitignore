@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /out/
+public/uploads/
 
 # production
 /build
@@ -38,6 +39,9 @@ yarn-error.log*
 # agent / ide artifacts
 claude.md
 agent.md
+
+# project docs (working notes)
+docs/
 
 # prisma generated client
 /src/generated/

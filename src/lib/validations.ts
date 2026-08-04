@@ -39,7 +39,7 @@ export const projectSchema = z.object({
 });
 
 export const statusSchema = z.enum(["TODO", "IN_PROGRESS", "DONE"]);
-
+export const prioritySchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
 export const roleValueSchema = z.enum(["ADMIN", "PROJECT_ADMIN", "USER"]);
 
 export type RegisterInput = z.infer<typeof registerSchema>;

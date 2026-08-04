@@ -5,7 +5,8 @@ import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { sendTaskAssignedEmail, sendTaskUpdatedEmail, TaskFieldChange } from "@/lib/email";
 import { logActivity } from "@/lib/activity";
-import { statusSchema, taskSchema } from "@/lib/validations";
+import { statusSchema, prioritySchema, taskSchema } from "@/lib/validations";
+import type { Priority, Status } from "@/generated/prisma/client";
 
 export interface ActionState {
   error: string | null;
@@ -360,6 +361,92 @@ export async function updateTaskStatus(_prev: ActionState, formData: FormData) {
     assigneeId: null,
   });
 
+  return { error: null };
+}
+
+export async function bulkUpdateTasks(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await getAuthedUser();
+  if (!user) return { error: "No autorizado" };
+
+  const projectId = formData.get("projectId");
+  if (typeof projectId !== "string") return { error: "Proyecto inválido" };
+
+  const ids = formData.getAll("ids").filter((v): v is string => typeof v === "string" && v.length > 0);
+  if (ids.length === 0) return { error: "Seleccioná al menos una tarea" };
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, createdById: true },
+  });
+  if (!project) return { error: "Proyecto no encontrado" };
+
+  const canManage =
+    user.role === "ADMIN" || (user.role === "PROJECT_ADMIN" && project.createdById === user.id);
+  if (!canManage) return { error: "No tenés permiso para modificar tareas en este proyecto" };
+
+  const tasks = await prisma.task.findMany({
+    where: { id: { in: ids }, projectId },
+    select: { id: true },
+  });
+  if (tasks.length !== ids.length) {
+    return { error: "Algunas tareas no pertenecen a este proyecto" };
+  }
+
+  const data: { status?: Status; priority?: Priority; assigneeId?: string | null } = {};
+  const status = formData.get("status");
+  if (status && statusSchema.safeParse(status).success) data.status = status as Status;
+  const priority = formData.get("priority");
+  if (priority && prioritySchema.safeParse(priority).success) data.priority = priority as Priority;
+  if (formData.get("assigneeId") !== null) {
+    const assignee = formData.get("assigneeId");
+    data.assigneeId = typeof assignee === "string" && assignee ? assignee : null;
+  }
+
+  if (Object.keys(data).length === 0) return { error: "No se especificaron cambios" };
+
+  await prisma.task.updateMany({ where: { id: { in: ids }, projectId }, data });
+
+  revalidatePath(`/projects/${projectId}`);
+  await logActivity({
+    action: "tasks.bulk_updated",
+    entity: "task",
+    entityId: projectId,
+    detail: JSON.stringify(data),
+    actorId: user.id,
+  });
+  return { error: null };
+}
+
+export async function bulkDeleteTasks(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await getAuthedUser();
+  if (!user) return { error: "No autorizado" };
+
+  const projectId = formData.get("projectId");
+  if (typeof projectId !== "string") return { error: "Proyecto inválido" };
+
+  const ids = formData.getAll("ids").filter((v): v is string => typeof v === "string" && v.length > 0);
+  if (ids.length === 0) return { error: "Seleccioná al menos una tarea" };
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { createdById: true },
+  });
+  if (!project) return { error: "Proyecto no encontrado" };
+
+  const canManage =
+    user.role === "ADMIN" || (user.role === "PROJECT_ADMIN" && project.createdById === user.id);
+  if (!canManage) return { error: "No tenés permiso para eliminar tareas en este proyecto" };
+
+  await prisma.task.deleteMany({ where: { id: { in: ids }, projectId } });
+
+  revalidatePath(`/projects/${projectId}`);
+  await logActivity({
+    action: "tasks.bulk_deleted",
+    entity: "task",
+    entityId: projectId,
+    detail: ids.length.toString(),
+    actorId: user.id,
+  });
   return { error: null };
 }
 
