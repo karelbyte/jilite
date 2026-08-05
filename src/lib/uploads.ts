@@ -1,5 +1,5 @@
 import "server-only";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, unlink, writeFile } from "fs/promises";
 import { join, normalize } from "path";
 import { randomUUID } from "crypto";
 
@@ -29,6 +29,26 @@ export function resolveFilePath(filename: string): string {
 
 export function resolvePublicUrl(filename: string): string {
   return `${uploadUrl}/${encodeURIComponent(filename)}`;
+}
+
+export async function deleteUpload(filename: string): Promise<void> {
+  let path: string;
+  try {
+    path = resolveFilePath(filename);
+  } catch {
+    return;
+  }
+  try {
+    await unlink(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
+      console.error("No se pudo eliminar el archivo:", path, error);
+    }
+  }
+}
+
+export async function deleteUploads(filenames: string[]): Promise<void> {
+  await Promise.all(filenames.map((f) => deleteUpload(f)));
 }
 
 function extname(name: string): string {

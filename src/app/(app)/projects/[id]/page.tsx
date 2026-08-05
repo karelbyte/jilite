@@ -81,6 +81,8 @@ export default async function ProjectDetailPage({
     orderBy: { name: "asc" },
   });
 
+  const projectTaskCount = await prisma.task.count({ where: { projectId: id } });
+
   const savedViews = await prisma.savedView.findMany({
     where: { userId: user.id, projectId: id },
     select: { id: true, name: true, filters: true },
@@ -156,6 +158,7 @@ export default async function ProjectDetailPage({
   const members = project.members.map((m) => ({
     id: m.id,
     userId: m.userId,
+    role: m.role,
     user: {
       id: m.user.id,
       name: m.user.name,
@@ -166,19 +169,22 @@ export default async function ProjectDetailPage({
 
   return (
     <ProjectDetailTemplate
-      project={{
-        id: project.id,
-        name: project.name,
-        description: project.description,
-        createdAt: project.createdAt,
-        createdBy: project.createdBy,
-      }}
+        project={{
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          createdAt: project.createdAt,
+          createdBy: project.createdBy,
+          createdById: project.createdById,
+        }}
       tasks={mappedTasks}
       members={members}
       availableUsers={availableUsers}
       assignableUsers={assignableUsers}
       canManage={canManage}
       canEdit={!isViewer}
+      canManageProject={canManage}
+      projectHasTasks={projectTaskCount > 0}
       search={search}
       status={status}
       priority={priority}

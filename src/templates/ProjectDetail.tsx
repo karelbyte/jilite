@@ -6,6 +6,7 @@ import ProjectTabs from "@/components/molecules/ProjectTabs";
 import Avatar from "@/components/atoms/Avatar";
 import ActivityList from "@/components/molecules/ActivityList";
 import TaskCsvControls from "@/components/molecules/TaskCsvControls";
+import DeleteProjectButton from "@/components/molecules/DeleteProjectButton";
 import type { ActivityItem } from "@/lib/activityLabels";
 import { formatDate } from "@/lib/format";
 import type { TaskListItem } from "@/components/molecules/TaskCard";
@@ -17,6 +18,7 @@ interface Props {
     description: string | null;
     createdAt: string | Date;
     createdBy: { name: string };
+    createdById: string;
   };
   tasks: TaskListItem[];
   members: MemberItem[];
@@ -24,6 +26,8 @@ interface Props {
   assignableUsers: { id: string; name: string }[];
   canManage: boolean;
   canEdit: boolean;
+  canManageProject: boolean;
+  projectHasTasks: boolean;
   search: string;
   status: string;
   priority: string;
@@ -46,6 +50,8 @@ export default function ProjectDetailTemplate({
   assignableUsers,
   canManage,
   canEdit,
+  canManageProject,
+  projectHasTasks,
   search,
   status,
   priority,
@@ -66,13 +72,20 @@ export default function ProjectDetailTemplate({
       </Link>
 
       <div className="mt-4 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{project.name}</h1>
-        {project.description ? (
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{project.description}</p>
-        ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
-          <span>Por {project.createdBy.name}</span>
-          <span>Creado el {formatDate(project.createdAt)}</span>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{project.name}</h1>
+            {project.description ? (
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{project.description}</p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+              <span>Por {project.createdBy.name}</span>
+              <span>Creado el {formatDate(project.createdAt)}</span>
+            </div>
+          </div>
+          {canManageProject ? (
+            <DeleteProjectButton projectId={project.id} hasTasks={projectHasTasks} />
+          ) : null}
         </div>
       </div>
 
@@ -108,6 +121,7 @@ export default function ProjectDetailTemplate({
           {canManage ? (
             <MemberManager
               projectId={project.id}
+              ownerId={project.createdById}
               members={members}
               availableUsers={availableUsers}
             />

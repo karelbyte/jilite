@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
+import { deleteUploads } from "@/lib/uploads";
 import { registerSchema, roleValueSchema } from "@/lib/validations";
 import { sendRegistrationEmail } from "@/lib/email";
 import { generateVerificationToken, verificationTokenExpires } from "@/lib/verification";
@@ -157,7 +158,14 @@ export async function adminDeleteUser(
     };
   }
 
+  const orphanFilenames = await prisma.file.findMany({
+    where: { OR: [{ uploadedById: userId }, { task: { createdById: userId } }] },
+    select: { filename: true },
+  });
+
   await prisma.user.delete({ where: { id: userId } });
+
+  await deleteUploads(orphanFilenames.map((f) => f.filename));
 
   revalidatePath("/admin/users");
   await logActivity({

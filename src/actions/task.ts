@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { sendTaskAssignedEmail, sendTaskUpdatedEmail, TaskFieldChange } from "@/lib/email";
 import { postWebhook } from "@/lib/notify";
 import { logActivity } from "@/lib/activity";
+import { deleteUploads } from "@/lib/uploads";
 import { statusSchema, prioritySchema, taskSchema } from "@/lib/validations";
 import { createNotification } from "@/lib/notifications";
 import type { Priority, Recurrence, Status } from "@/generated/prisma/client";
@@ -521,7 +522,14 @@ export async function deleteTask(id: string) {
     if (task.createdById !== user.id) return;
   }
 
+  const files = await prisma.file.findMany({
+    where: { taskId: id },
+    select: { filename: true },
+  });
+
   await prisma.task.delete({ where: { id } });
+
+  await deleteUploads(files.map((f) => f.filename));
 
   revalidatePath(`/projects/${task.projectId}`);
   await logActivity({
