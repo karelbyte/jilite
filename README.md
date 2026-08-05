@@ -94,6 +94,8 @@ Abrir [http://localhost:3000](http://localhost:3000).
 
 ### 2. Variables de entorno
 
+> **Node.js:** la app requiere **Node 20.19+** (lo exige Prisma 7 y Next 16). El proyecto ya lo declara en `package.json` (`engines`) y `.nvmrc`, así que Railway instalará Node 20 automáticamente. No hace falta configuración adicional.
+
 En el servicio de la app, en **Variables**, agregá:
 
 ```
