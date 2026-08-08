@@ -548,7 +548,10 @@ export async function moveTask(id: string, status: string, position?: number): P
   const parsed = statusSchema.safeParse(status);
   if (!parsed.success) return { error: "Estado inválido" };
 
-  const task = await prisma.task.findUnique({ where: { id } });
+  const task = await prisma.task.findUnique({
+    where: { id },
+    include: { project: { select: { name: true } } },
+  });
   if (!task) return { error: "Tarea no encontrada" };
 
   const project = await prisma.project.findUnique({ where: { id: task.projectId } });
@@ -579,6 +582,30 @@ export async function moveTask(id: string, status: string, position?: number): P
     detail: task.title,
     actorId: user.id,
   });
+
+  if (task.status !== parsed.data) {
+    const projectName = task.project?.name ?? "el proyecto";
+    const changes: TaskFieldChange[] = [
+      { field: "status", label: "Estado", from: task.status, to: parsed.data },
+    ];
+    await notifyTaskRecipients({
+      taskId: id,
+      taskTitle: task.title,
+      projectName,
+      changes,
+      editorId: user.id,
+      editorName: user.name ?? user.email,
+      projectId: task.projectId,
+      creatorId: task.createdById,
+      assigneeId: null,
+    });
+
+    await postWebhook({
+      text: `🔀 **${user.name ?? user.email}** movió "${task.title}" a ${parsed.data}`,
+      taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${id}`,
+    });
+  }
+
   return { error: null };
 }
 

@@ -134,7 +134,7 @@ export async function deleteProject(projectId: string): Promise<{ error: string 
   }
 
   const projectFiles = await prisma.file.findMany({
-    where: { task: { projectId } },
+    where: { OR: [{ task: { projectId } }, { projectId }] },
     select: { filename: true },
   });
 

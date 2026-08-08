@@ -8,6 +8,7 @@ import { postWebhook } from "@/lib/notify";
 import { commentSchema } from "@/lib/validations";
 import { findMentionNames } from "@/lib/mentions";
 import { createNotification } from "@/lib/notifications";
+import { deleteUpload } from "@/lib/uploads";
 import type { ActionState as AdminActionState } from "@/actions/admin";
 
 export interface ActionState {
@@ -149,23 +150,29 @@ export async function deleteFile(fileId: string): Promise<AdminActionState> {
 
   const file = await prisma.file.findUnique({
     where: { id: fileId },
-    include: { task: { select: { projectId: true, createdById: true } } },
+    include: {
+      task: { select: { projectId: true, createdById: true } },
+      project: { select: { id: true, createdById: true } },
+    },
   });
   if (!file) return { error: "Archivo no encontrado", message: null };
 
-  if (await isViewerOf(user, file.task.projectId)) {
+  const projectId = file.projectId ?? file.task?.projectId;
+  if (!projectId) return { error: "Archivo no encontrado", message: null };
+
+  if (await isViewerOf(user, projectId)) {
     return { error: "No tienes permisos para eliminar archivos", message: null };
   }
 
   if (user.role !== "ADMIN") {
     const project = await prisma.project.findUnique({
-      where: { id: file.task.projectId },
+      where: { id: projectId },
     });
     const isOwner = project?.createdById === user.id;
     const membership =
       project &&
       (await prisma.projectMember.findUnique({
-        where: { projectId_userId: { projectId: project.id, userId: user.id } },
+        where: { projectId_userId: { projectId, userId: user.id } },
       }));
     if (!project || (!isOwner && !membership)) {
       return { error: "No tienes acceso a este archivo", message: null };
@@ -173,7 +180,9 @@ export async function deleteFile(fileId: string): Promise<AdminActionState> {
   }
 
   await prisma.file.delete({ where: { id: fileId } });
+  await deleteUpload(file.filename);
 
-  revalidatePath(`/tasks/${file.taskId}`);
+  if (file.taskId) revalidatePath(`/tasks/${file.taskId}`);
+  revalidatePath(`/projects/${projectId}`);
   return { error: null, message: "Archivo eliminado" };
 }

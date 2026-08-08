@@ -90,7 +90,7 @@ export default async function ProjectDetailPage({
   });
 
   const projectFiles = await prisma.file.findMany({
-    where: { task: { projectId: id } },
+    where: { OR: [{ task: { projectId: id } }, { projectId: id }] },
     include: {
       task: { select: { id: true, title: true } },
       uploadedBy: { select: { name: true } },

@@ -159,7 +159,13 @@ export async function adminDeleteUser(
   }
 
   const orphanFilenames = await prisma.file.findMany({
-    where: { OR: [{ uploadedById: userId }, { task: { createdById: userId } }] },
+    where: {
+      OR: [
+        { uploadedById: userId },
+        { task: { createdById: userId } },
+        { project: { createdById: userId } },
+      ],
+    },
     select: { filename: true },
   });
 

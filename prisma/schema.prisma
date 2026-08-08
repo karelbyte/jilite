@@ -80,6 +80,7 @@ model Project {
   labels      Label[]
   invitations Invitation[]
   savedViews  SavedView[]
+  files       File[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
@@ -187,8 +188,10 @@ model Comment {
 
 model File {
   id           String   @id @default(cuid())
-  taskId       String
-  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId       String?
+  task         Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  projectId    String?
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name         String
   filename     String   @unique
   contentType  String
@@ -197,6 +200,7 @@ model File {
   createdAt    DateTime @default(now())
 
   @@index([taskId])
+  @@index([projectId])
 }
 
 model ActivityLog {

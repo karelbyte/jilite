@@ -144,7 +144,7 @@ export default function ProjectDetailTemplate({
 
       {tab === "archivos" ? (
         <div className="mt-6">
-          <ProjectFiles files={projectFiles} />
+          <ProjectFiles files={projectFiles} projectId={project.id} canEdit={canEdit} />
         </div>
       ) : null}
 

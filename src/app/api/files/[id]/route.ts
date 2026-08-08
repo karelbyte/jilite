@@ -16,21 +16,29 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
 
   const file = await prisma.file.findUnique({
     where: { id },
-    include: { task: { select: { projectId: true } } },
+    include: {
+      task: { select: { projectId: true } },
+      project: { select: { id: true } },
+    },
   });
   if (!file) {
     return new Response(null, { status: 404 });
   }
 
+  const projectId = file.projectId ?? file.task?.projectId;
+  if (!projectId) {
+    return new Response(null, { status: 404 });
+  }
+
   if (user.role !== "ADMIN") {
     const project = await prisma.project.findUnique({
-      where: { id: file.task.projectId },
+      where: { id: projectId },
     });
     const isOwner = project?.createdById === user.id;
     const membership =
       project &&
       (await prisma.projectMember.findUnique({
-        where: { projectId_userId: { projectId: project.id, userId: user.id } },
+        where: { projectId_userId: { projectId, userId: user.id } },
       }));
     if (!project || (!isOwner && !membership)) {
       return new Response(null, { status: 404 });

@@ -11,7 +11,7 @@ const prisma = new PrismaClient({
 async function main() {
   const file = await prisma.file.findUnique({
     where: { id: "cmsepr18d000050lps140epwr" },
-    include: { task: { select: { projectId: true } } },
+    include: { task: { select: { projectId: true } }, project: { select: { id: true } } },
   });
   console.log("=== FILE ===");
   console.log("file:", file);
@@ -19,7 +19,7 @@ async function main() {
   if (!file) return;
 
   const project = await prisma.project.findUnique({
-    where: { id: file.task.projectId },
+    where: { id: file.projectId ?? file.task?.projectId ?? "" },
     select: { id: true, createdById: true },
   });
   console.log("\n=== PROJECT ===");

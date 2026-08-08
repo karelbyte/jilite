@@ -51,8 +51,22 @@ export async function GET(request: Request) {
       take: 5,
     }),
     prisma.file.findMany({
-      where: { name: { contains: q, mode: "insensitive" }, task: accessible },
-      include: { task: { select: { id: true, title: true, project: { select: { name: true } } } } },
+      where: {
+        name: { contains: q, mode: "insensitive" },
+        ...(user.role === "ADMIN"
+          ? {}
+          : {
+              OR: [
+                { task: accessible },
+                { project: { createdById: user.id } },
+                { project: { members: { some: { userId: user.id } } } },
+              ],
+            }),
+      },
+      include: {
+        task: { select: { id: true, title: true, project: { select: { id: true, name: true } } } },
+        project: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
@@ -81,9 +95,10 @@ export async function GET(request: Request) {
     files: files.map((f) => ({
       id: f.id,
       name: f.name,
-      taskId: f.task.id,
-      taskTitle: f.task.title,
-      projectName: f.task.project.name,
+      taskId: f.task?.id ?? null,
+      taskTitle: f.task?.title ?? null,
+      projectId: f.project?.id ?? f.task?.project.id,
+      projectName: f.project?.name ?? f.task?.project.name ?? "",
     })),
   });
 }

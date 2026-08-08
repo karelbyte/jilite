@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/atoms/Button";
 
 interface Props {
-  taskId: string;
+  taskId?: string;
+  projectId?: string;
 }
 
-export default function FileUploader({ taskId }: Props) {
+export default function FileUploader({ taskId, projectId }: Props) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -22,7 +23,8 @@ export default function FileUploader({ taskId }: Props) {
     for (const file of Array.from(files)) {
       const body = new FormData();
       body.append("file", file);
-      body.append("taskId", taskId);
+      if (taskId) body.append("taskId", taskId);
+      if (projectId) body.append("projectId", projectId);
 
       const res = await fetch("/api/upload", {
         method: "POST",

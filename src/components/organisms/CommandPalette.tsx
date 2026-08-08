@@ -23,8 +23,9 @@ interface UserHit {
 interface FileHit {
   id: string;
   name: string;
-  taskId: string;
-  taskTitle: string;
+  taskId: string | null;
+  taskTitle: string | null;
+  projectId: string | null;
   projectName: string;
 }
 
@@ -111,8 +112,8 @@ export default function CommandPalette() {
     ...results.files.map((f) => ({
       kind: "file" as const,
       label: f.name,
-      sub: `${f.projectName} · ${f.taskTitle}`,
-      href: `/tasks/${f.taskId}`,
+      sub: f.taskId ? `${f.projectName} · ${f.taskTitle}` : `${f.projectName} · Documento del proyecto`,
+      href: f.taskId ? `/tasks/${f.taskId}` : `/projects/${f.projectId}`,
     })),
   ];
 

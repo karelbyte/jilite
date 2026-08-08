@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache";
-import { getAuthedUser, isViewerOf } from "@/lib/rbac";
+import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { saveUpload, resolvePublicUrl } from "@/lib/uploads";
 import { logger, requestIdFrom } from "@/lib/logger";
@@ -18,11 +18,8 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const taskId = formData.get("taskId");
+    const projectId = formData.get("projectId");
     const uploaded = formData.get("file");
-
-    if (typeof taskId !== "string") {
-      return Response.json({ error: "Task required" }, { status: 400 });
-    }
 
     if (!(uploaded instanceof File)) {
       return Response.json({ error: "File required" }, { status: 400 });
@@ -32,26 +29,28 @@ export async function POST(request: Request) {
       return Response.json({ error: "File too large" }, { status: 400 });
     }
 
-    const task = await prisma.task.findUnique({ where: { id: taskId } });
-    if (!task) {
-      return Response.json({ error: "Task not found" }, { status: 404 });
-    }
+    let targetProjectId: string | null = null;
+    let targetTaskId: string | null = null;
 
-    if (await isViewerOf(user, task.projectId)) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (user.role !== "ADMIN") {
-      const project = await prisma.project.findUnique({ where: { id: task.projectId } });
-      const isOwner = project?.createdById === user.id;
-      const membership =
-        project &&
-        (await prisma.projectMember.findUnique({
-          where: { projectId_userId: { projectId: project.id, userId: user.id } },
-        }));
-      if (!project || (!isOwner && !membership)) {
-        return Response.json({ error: "Forbidden" }, { status: 403 });
+    if (typeof taskId === "string" && taskId) {
+      const task = await prisma.task.findUnique({ where: { id: taskId } });
+      if (!task) {
+        return Response.json({ error: "Task not found" }, { status: 404 });
       }
+      targetProjectId = task.projectId;
+      targetTaskId = task.id;
+    } else if (typeof projectId === "string" && projectId) {
+      const project = await prisma.project.findUnique({ where: { id: projectId } });
+      if (!project) {
+        return Response.json({ error: "Project not found" }, { status: 404 });
+      }
+      targetProjectId = project.id;
+    } else {
+      return Response.json({ error: "Task or project required" }, { status: 400 });
+    }
+
+    if (targetProjectId && !(await canAccessProject(user.id, targetProjectId))) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const data = Buffer.from(await uploaded.arrayBuffer());
@@ -59,7 +58,8 @@ export async function POST(request: Request) {
 
     const file = await prisma.file.create({
       data: {
-        taskId,
+        taskId: targetTaskId,
+        projectId: targetTaskId ? null : targetProjectId,
         name: uploaded.name,
         filename,
         contentType: uploaded.type || "application/octet-stream",
@@ -71,14 +71,16 @@ export async function POST(request: Request) {
     logger.info("upload.completed", {
       requestId,
       userId: user.id,
-      taskId,
+      taskId: targetTaskId,
+      projectId: targetProjectId,
       fileId: file.id,
       name: uploaded.name,
       bytes: data.length,
       durationMs: Date.now() - started,
     });
 
-    revalidatePath(`/tasks/${taskId}`);
+    if (targetTaskId) revalidatePath(`/tasks/${targetTaskId}`);
+    if (targetProjectId) revalidatePath(`/projects/${targetProjectId}`);
     return Response.json({ file, url: resolvePublicUrl(file.filename) });
   } catch (error) {
     logger.error("upload.error", {
@@ -88,4 +90,26 @@ export async function POST(request: Request) {
     });
     return Response.json({ error: "Internal error" }, { status: 500 });
   }
+}
+
+async function canAccessProject(userId: string, projectId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true },
+  });
+  if (!user) return false;
+  if (user.role === "ADMIN") return true;
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { createdById: true },
+  });
+  if (!project) return false;
+  if (project.createdById === user.id) return true;
+
+  const membership = await prisma.projectMember.findUnique({
+    where: { projectId_userId: { projectId, userId } },
+    select: { role: true },
+  });
+  return membership ? membership.role !== "VIEWER" : false;
 }
