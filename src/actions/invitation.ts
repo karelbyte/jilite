@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import { getAuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { sendInvitationEmail } from "@/lib/email";
+import { enqueueEmail } from "@/lib/outbox";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { logActivity } from "@/lib/activity";
 
@@ -79,17 +79,17 @@ export async function inviteMemberAction(
   const inviteUrl = `${appUrl}/invite?token=${encodeURIComponent(token)}`;
 
   try {
-    await sendInvitationEmail(normalized, {
+    await enqueueEmail("invitation", normalized, {
       name: normalized.split("@")[0],
       inviterName: actor.name,
       projectName: project.name,
       inviteUrl,
     });
   } catch (error) {
-    console.error("No se pudo enviar la invitación:", error);
+    console.error("No se pudo encolar la invitación:", error);
     return {
       error: null,
-      message: "Invitación creada, pero no se pudo enviar el correo. Copiá el link y compartilo manualmente.",
+      message: "Invitación creada, pero no se pudo encolar el correo. Copiá el link y compartilo manualmente.",
       inviteUrl,
     };
   }

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser, isViewerOf, type AuthedUser } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { postWebhook } from "@/lib/notify";
+import { enqueueWebhook } from "@/lib/outbox";
 import type { ActionState } from "@/actions/admin";
 
 async function canEditTask(user: AuthedUser, taskId: string) {
@@ -50,10 +50,10 @@ export async function createSubtask(formData: FormData): Promise<void> {
   });
   revalidatePath(`/tasks/${taskId}`);
 
-  await postWebhook({
-    text: `📋 **${user.name}** añadió la subtarea "${title}" a "${task.title}"`,
-    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${taskId}`,
-  });
+  await enqueueWebhook(
+    `📋 **${user.name}** añadió la subtarea "${title}" a "${task.title}"`,
+    `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${taskId}`
+  );
 }
 
 export async function toggleSubtask(formData: FormData): Promise<void> {
@@ -71,12 +71,12 @@ export async function toggleSubtask(formData: FormData): Promise<void> {
   });
   revalidatePath(`/tasks/${subtask.taskId}`);
 
-  await postWebhook({
-    text: `${
+  await enqueueWebhook(
+    `${
       subtask.done ? "↩️" : "✅"
     } **${user.name}** ${subtask.done ? "marcó como pendiente" : "completó"} la subtarea "${subtask.title}" en "${task.title}"`,
-    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${subtask.taskId}`,
-  });
+    `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${subtask.taskId}`
+  );
 }
 
 export async function moveSubtask(formData: FormData): Promise<void> {
@@ -123,9 +123,9 @@ export async function deleteSubtask(
 
   await prisma.subtask.delete({ where: { id: subtaskId } });
   revalidatePath(`/tasks/${subtask.taskId}`);
-  await postWebhook({
-    text: `🗑️ **${user.name}** eliminó la subtarea "${subtask.title}" de "${task.title}"`,
-    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${subtask.taskId}`,
-  });
+  await enqueueWebhook(
+    `🗑️ **${user.name}** eliminó la subtarea "${subtask.title}" de "${task.title}"`,
+    `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${subtask.taskId}`
+  );
   return { error: null, message: "Subtarea eliminada" };
 }

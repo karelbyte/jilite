@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getAuthedUser, isViewerOf } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { sendTaskAssignedEmail, sendTaskUpdatedEmail, TaskFieldChange } from "@/lib/email";
-import { postWebhook } from "@/lib/notify";
+import { TaskFieldChange } from "@/lib/email";
+import { enqueueEmail, enqueueWebhook } from "@/lib/outbox";
 import { logActivity } from "@/lib/activity";
 import { deleteUploads } from "@/lib/uploads";
 import { statusSchema, prioritySchema, taskSchema } from "@/lib/validations";
@@ -35,7 +35,7 @@ async function notifyAssignee(assigneeId: string | undefined, projectName: strin
     if (!assignee || assignee.status !== "ACTIVE") return;
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    await sendTaskAssignedEmail(assignee.email, {
+    await enqueueEmail("task_assigned", assignee.email, {
       name: assignee.name,
       taskTitle,
       projectName,
@@ -49,7 +49,7 @@ async function notifyAssignee(assigneeId: string | undefined, projectName: strin
       taskId,
     });
   } catch (error) {
-    console.error("No se pudo enviar la notificación de asignación:", error);
+    console.error("No se pudo encolar la notificación de asignación:", error);
   }
 }
 
@@ -102,7 +102,7 @@ async function notifyTaskRecipients(input: NotifyTaskRecipientsInput) {
 
   await Promise.allSettled(
     [...recipients.values()].map((r) =>
-      sendTaskUpdatedEmail(r.email, {
+      enqueueEmail("task_updated", r.email, {
         name: r.name,
         taskTitle,
         projectName,
@@ -181,10 +181,10 @@ export async function createTask(_prev: ActionState, formData: FormData): Promis
 
   revalidatePath(`/projects/${projectId}`);
   await notifyAssignee(assigneeId, project.name, created.id, title);
-  await postWebhook({
-    text: `📝 **${user.name ?? user.email}** creó la tarea "${title}" en "${project.name}"`,
-    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${created.id}`,
-  });
+  await enqueueWebhook(
+    `📝 **${user.name ?? user.email}** creó la tarea "${title}" en "${project.name}"`,
+    `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${created.id}`
+  );
   await logActivity({
     action: "task.created",
     entity: "task",
@@ -323,10 +323,10 @@ export async function updateTask(_prev: ActionState, formData: FormData) {
     assigneeId: assigneeId || null,
   });
 
-  await postWebhook({
-    text: `✏️ **${user.name ?? user.email}** actualizó "${title}" (${changes.map((c) => c.label).join(", ")}${changes.length === 0 ? "sin cambios" : ""})`,
-    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${id}`,
-  });
+  await enqueueWebhook(
+    `✏️ **${user.name ?? user.email}** actualizó "${title}" (${changes.map((c) => c.label).join(", ")}${changes.length === 0 ? "sin cambios" : ""})`,
+    `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${id}`
+  );
 
   await logActivity({
     action: "task.updated",
@@ -410,10 +410,10 @@ export async function updateTaskStatus(_prev: ActionState, formData: FormData) {
     assigneeId: null,
   });
 
-  await postWebhook({
-    text: `🔀 **${user.name ?? user.email}** movió "${task.title}" a ${parsed.data}`,
-    taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${id}`,
-  });
+  await enqueueWebhook(
+    `🔀 **${user.name ?? user.email}** movió "${task.title}" a ${parsed.data}`,
+    `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${id}`
+  );
 
   return { error: null };
 }
@@ -600,10 +600,10 @@ export async function moveTask(id: string, status: string, position?: number): P
       assigneeId: null,
     });
 
-    await postWebhook({
-      text: `🔀 **${user.name ?? user.email}** movió "${task.title}" a ${parsed.data}`,
-      taskUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${id}`,
-    });
+    await enqueueWebhook(
+      `🔀 **${user.name ?? user.email}** movió "${task.title}" a ${parsed.data}`,
+      `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/tasks/${id}`
+    );
   }
 
   return { error: null };

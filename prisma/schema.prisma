@@ -217,6 +217,20 @@ model ActivityLog {
   @@index([entityId])
 }
 
+model Outbox {
+  id          String   @id @default(cuid())
+  kind        String
+  payload     Json
+  status      String   @default("PENDING")
+  attempts    Int      @default(0)
+  lastError   String?
+  availableAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  processedAt DateTime?
+
+  @@index([status, availableAt])
+}
+
 model Label {
   id        String      @id @default(cuid())
   name      String

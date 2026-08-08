@@ -76,7 +76,7 @@ Abrir [http://localhost:3000](http://localhost:3000).
 | `RESEND_FROM` | Remitente de los correos | Solo email |
 | `UPLOAD_DIR` | Carpeta física de archivos subidos | ❌ (default `public/uploads`) |
 | `UPLOAD_URL` | Prefijo público de los archivos | ❌ (default `/uploads`) |
-| `CRON_SECRET` | Secreto para el endpoint `/api/cron/reminders` | Solo reminders |
+| `CRON_SECRET` | Secreto para los endpoints `/api/cron/*` | Schedulers |
 | `SLACK_WEBHOOK_URL` | Webhook de Slack para notificaciones | ❌ |
 | `DISCORD_WEBHOOK_URL` | Webhook de Discord para notificaciones | ❌ |
 | `ADMIN_EMAIL` | Email del super admin inicial (seed prod) | Solo primer deploy |
@@ -145,6 +145,13 @@ Para que las notificaciones de tareas por vencer y vencidas funcionen:
 1. En el panel de Railway, abrí el proyecto → **Schedulers** → **New Scheduler**.
 2. Endpoint: `https://tu-app.up.railway.app/api/cron/reminders?key=<CRON_SECRET>`
 3. Frecuencia: p. ej. cada hora (`0 * * * *`).
+
+### 5b. Cola de correos y webhooks (outbox)
+
+Los correos y webhooks de tareas/comentarios/subtareas/invitaciones se encolan en la tabla `Outbox` y los envía un worker en background (para no bloquear la creación de tareas). Configurá este scheduler:
+
+1. Endpoint: `https://tu-app.up.railway.app/api/cron/outbox?key=<CRON_SECRET>`
+2. Frecuencia: cada minuto (`* * * * *`). Cada corrida procesa hasta 50 jobs con reintentos (máx 5 intentos con backoff) y los marca `DONE`/`FAILED`.
 
 ### 6. Health check
 

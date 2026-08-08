@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthedUser, isViewerOf } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { sendCommentNotification, sendMentionNotification } from "@/lib/email";
-import { postWebhook } from "@/lib/notify";
+import { enqueueEmail, enqueueWebhook } from "@/lib/outbox";
 import { commentSchema } from "@/lib/validations";
 import { findMentionNames } from "@/lib/mentions";
 import { createNotification } from "@/lib/notifications";
@@ -99,13 +98,13 @@ export async function createComment(_prev: ActionState, formData: FormData) {
   await Promise.allSettled(
     [...recipients.values()].map((r) =>
       mentionedIds.has(r.id)
-        ? sendMentionNotification(r.email, {
+        ? enqueueEmail("mention", r.email, {
             taskTitle: task.title,
             mentionerName: author.name,
             commentBody: parsed.data.body,
             taskUrl,
           })
-        : sendCommentNotification(r.email, {
+        : enqueueEmail("comment", r.email, {
             taskTitle: task.title,
             commenterName: author.name,
             commentBody: parsed.data.body,
@@ -133,12 +132,12 @@ export async function createComment(_prev: ActionState, formData: FormData) {
     )
   );
 
-  await postWebhook({
-    text: `💬 **${author.name}** comentó en "${task.title}"${
+  await enqueueWebhook(
+    `💬 **${author.name}** comentó en "${task.title}"${
       mentionedNames ? ` y mencionó a: ${mentionedNames}` : ""
     }`,
-    taskUrl,
-  });
+    taskUrl
+  );
 
   revalidatePath(`/tasks/${taskId}`);
   return { error: null };
